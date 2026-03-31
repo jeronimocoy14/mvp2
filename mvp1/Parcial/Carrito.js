@@ -7,6 +7,8 @@ const box = document.getElementById("efectivo-box");
 const recibidoInput = document.getElementById("recibido");
 const cambioEl = document.getElementById("cambio");
 const btnCerrar = document.getElementById("cerrar");
+const btnvolver = document.getElementById("volver");
+const btnvaciar = document.getElementById("vaciar");
 
 function render() {
   lista.innerHTML = "";
@@ -17,20 +19,38 @@ function render() {
         ${p.nombre} x${p.cantidad}
         <span>
           ${(p.precio * p.cantidad).toLocaleString("es-CO", {
-            style: "currency",
-            currency: "COP"
-          })}
+      style: "currency",
+      currency: "COP"
+    })}
         </span>
+        <button class="btn-eliminar" type="button" onclick="eliminarItem(${p.id})">Eliminar</button>
       </p>
     `;
   });
-
   const total = carrito.reduce((acc, p) => acc + p.precio * p.cantidad, 0);
 
   totalEl.textContent = total.toLocaleString("es-CO", {
     style: "currency",
     currency: "COP"
   });
+}
+function mostrarMensaje(texto, tipo = "success") {
+  const mensaje = document.getElementById("mensaje");
+
+  mensaje.textContent = texto;
+  mensaje.className = "";
+  mensaje.classList.add("mostrar", tipo);
+
+  setTimeout(() => {
+    mensaje.classList.remove("mostrar");
+  }, 2500);
+}
+
+function eliminarItem(id) {
+  carrito = carrito.filter(item => item.id !== id);
+  localStorage.setItem("carrito", JSON.stringify(carrito));
+  render();
+  mostrarMensaje("Producto eliminado del carrito", "success");
 }
 
 metodo.addEventListener("change", () => {
@@ -53,12 +73,12 @@ recibidoInput.addEventListener("input", () => {
 
 btnCerrar.onclick = () => {
   if (carrito.length === 0) {
-    alert("No hay productos en la venta");
+    mostrarMensaje("No hay productos en la venta", "error");
     return;
   }
 
   if (!metodo.value) {
-    alert("Seleccione un método de pago");
+    mostrarMensaje("Seleccione un método de pago", "error");
     return;
   }
 
@@ -67,7 +87,7 @@ btnCerrar.onclick = () => {
   if (metodo.value === "Efectivo") {
     const recibido = Number(recibidoInput.value);
     if (isNaN(recibido) || recibido < total) {
-      alert("El efectivo recibido es menor al total");
+      mostrarMensaje("El efectivo recibido es menor al total", "error");
       return;
     }
   }
@@ -121,6 +141,18 @@ btnCerrar.onclick = () => {
 
   localStorage.removeItem("carrito");
   window.location.href = "factura.html?id=" + venta.id;
+
+};
+
+btnvaciar.onclick = () => {
+  localStorage.removeItem("carrito");
+  carrito = [];
+  render();
+};
+
+btnvolver.onclick = () => {
+  window.location.href = "PapelLuna.html";
 };
 
 render();
+

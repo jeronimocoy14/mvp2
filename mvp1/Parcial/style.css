@@ -5,7 +5,6 @@
   --color-exito: #38b000;
   --color-error: #d00000;
 
-  --fondo-principal: #f6f7fb;
   --fondo-card: #ffffff;
   --fondo-header: #ffffff;
 
@@ -33,7 +32,9 @@ body {
   padding-bottom: 40px;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-weight: 700;
   margin-bottom: 12px;
 }
@@ -98,6 +99,7 @@ nav a {
 nav a:hover {
   background: var(--color-primario);
   color: white;
+  text-decoration: none;
 }
 
 main {
@@ -196,14 +198,27 @@ button:disabled {
 }
 
 #lista p {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 80px 80px 80px;
+  align-items: center;
+  gap: 12px;
   border-bottom: 1px dashed var(--borde-suave);
   padding: 10px 0;
 }
 
 #lista p:last-child {
   border-bottom: none;
+}
+
+#lista button {
+  background: var(--color-error);
+  padding: 6px 10px;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+#lista button:hover {
+  background: #9b0000;
 }
 
 #total {
@@ -227,6 +242,133 @@ button:disabled {
 #cambio {
   font-weight: bold;
   color: var(--color-primario);
+}
+.item-producto {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 140px 140px;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px dashed var(--borde-suave);
+}
+
+.nombre-producto {
+  font-weight: 600;
+  color: var(--texto-principal);
+}
+
+.info-producto {
+  color: var(--texto-secundario);
+  margin: 0;
+}
+
+.btn-restock,
+.btn-editar,
+.btn-eliminar {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 0.9rem;
+  padding: 6px 10px;
+}
+
+#mensaje {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: white;
+  background: #333;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px);
+  transition: 0.3s ease;
+  z-index: 9999;
+}
+
+#mensaje.mostrar {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.oculto {
+  display: none !important;
+}
+
+#modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+
+.modal-box {
+  background: white;
+  border-radius: 18px;
+  padding: 22px;
+  width: min(90vw, 380px);
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.18);
+}
+
+.modal-box p {
+  margin: 0 0 16px;
+  color: #111;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+#modal-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-size: 0.95rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+#modal-cancel,
+#modal-accept {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#modal-cancel {
+  background: #e5e7eb;
+  color: #111;
+}
+
+#modal-accept {
+  background: #0077cc;
+  color: white;
+}
+
+#mensaje.success {
+  background: var(--color-exito);
+}
+
+#mensaje.error {
+  background: var(--color-error);
+}
+
+#mensaje.warning {
+  background: var(--color-secundario);
+  color: #222;
 }
 
 #factura {
@@ -277,41 +419,15 @@ button:disabled {
 
 #ventas a:hover {
   background: #0096c7;
+  text-decoration: none;
 }
 
-#lista p {
-  align-items: center;
-}
-
-#lista button {
-  background: var(--color-error);
-  padding: 6px 12px;
-}
-
-#lista button:hover {
-  background: #9b0000;
-}
-
-.success {
-  background: #e9f9ef;
-  color: var(--color-exito);
-  padding: 10px;
-  border-radius: var(--radio);
-}
-
-.error {
-  background: #fdeaea;
-  color: var(--color-error);
-  padding: 10px;
-  border-radius: var(--radio);
-}
-
-footer{
-    background:#2c3e50;
-    color:#1f2f28;
-    text-align:center;
-    padding:20px;
-    margin-top:40px;
+footer {
+  background: #2c3e50;
+  color: white;
+  text-align: center;
+  padding: 20px;
+  margin-top: 40px;
 }
 
 @media (max-width: 768px) {
@@ -329,5 +445,13 @@ footer{
 
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  #lista p,
+  #ventas p,
+  #factura li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 }
