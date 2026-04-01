@@ -14,9 +14,14 @@
     <div class="modal-box">
       <p id="modal-text"></p>
       <input id="modal-input" type="text" class="oculto" />
-      <div class="modal-actions">
+      <div class="modal-actions" id="modal-actions">
         <button id="modal-cancel" type="button">Cancelar</button>
         <button id="modal-accept" type="button">Aceptar</button>
+
+        <button id="modal-costo" type="button" class="oculto">Editar Costo</button>
+      <button id="modal-precio" type="button" class="oculto">Editar Precio</button>
+      <button id="modal-cancelar" type="button" class="oculto">Cerrar</button>
+
       </div>
     </div>
   </div>
@@ -26,26 +31,21 @@
   <input id="nombre" placeholder="Nombre del producto">
   <input id="precio" type="number" placeholder="Precio de venta">
   <input id="stock" type="number" placeholder="Stock inicial">
+  <input id="costo" type="number" placeholder="Costo del producto">
 
   <button onclick="crear()">Crear producto</button>
+  <button onclick="cancelar()">Cancelar</button>
 
 
   <div id="lista">
     
-    <div class="item-producto">
-      <span class="nombre-producto">Cuadernos argollados (100 hojas)</span>
-      <span class="info-producto">Precio: $23.000,00 | Stock: 40</span>
-      <button class="btn-restock">Restock</button>
-      <button class="btn-eliminar">Eliminar</button>
-      <button class="btn-editar">Editar</button>
-    </div>
-
+    
   </div>
 
-  <button id="volver">Volver</button>
+  <button id="volver">Volver a la página principal</button>
 
 </main>
-
+<script src="data.js"></script>
 <script src="productos.js"></script>
 </body>
 </html>

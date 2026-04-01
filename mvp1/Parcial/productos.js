@@ -1,182 +1,336 @@
-let productos = JSON.parse(localStorage.getItem("productos")) || [];
-
-const lista = document.getElementById("lista");
-const nombre = document.getElementById("nombre");
-const precio = document.getElementById("precio");
+const listaContenedor = document.getElementById("lista");
+const nombreInput = document.getElementById("nombre");
+const precioInput = document.getElementById("precio");
 const stockInput = document.getElementById("stock");
-const btnVolver = document.getElementById("volver");
+const costoInput = document.getElementById("costo");
+const borrarInput = document.getElementById("borrar");
+const editarInput = document.getElementById("editar");
+const restockInput = document.getElementById("restock");
 const mensajeBox = document.getElementById("mensaje");
 const modalOverlay = document.getElementById("modal-overlay");
 const modalText = document.getElementById("modal-text");
+const btnVolver = document.getElementById("volver");
 const modalInput = document.getElementById("modal-input");
-const modalAccept = document.getElementById("modal-accept");
 const modalCancel = document.getElementById("modal-cancel");
+const modalAccept = document.getElementById("modal-accept");
+const modalCosto = document.getElementById("modal-costo");
+const modalPrecio = document.getElementById("modal-precio");
+const modalCancelar = document.getElementById("modal-cancelar");
+
+
+let productoEditandoId = null;
 let modalConfirmCallback = null;
 let modalPromptCallback = null;
-let modalCancelCallback = null;
 
-function cerrarModal() {
-  modalOverlay.classList.add("oculto");
-  modalInput.classList.add("oculto");
-  modalInput.value = "";
-  modalConfirmCallback = null;
-  modalPromptCallback = null;
-  modalCancelCallback = null;
+function mostrarEditables(texto, id) {
+    productoEditandoId = id; 
+    modalText.textContent = texto;
+    
+    // opciones de borrar
+    modalInput.classList.add("oculto");
+    modalAccept.classList.add("oculto");
+    modalCancel.classList.add("oculto");
+    
+   //opciones de editar
+    modalCosto.classList.remove("oculto");
+    modalPrecio.classList.remove("oculto");
+    modalCancelar.classList.remove("oculto");
+
+    modalOverlay.classList.remove("oculto");
 }
 
-modalAccept.addEventListener("click", () => {
-  if (modalOverlay.classList.contains("oculto")) return;
-  if (!modalInput.classList.contains("oculto")) {
-    if (typeof modalPromptCallback === "function") modalPromptCallback(modalInput.value);
-  } else {
-    if (typeof modalConfirmCallback === "function") modalConfirmCallback();
-  }
-  cerrarModal();
-});
-
-modalCancel.addEventListener("click", () => {
-  if (modalOverlay.classList.contains("oculto")) return;
-  if (typeof modalCancelCallback === "function") modalCancelCallback();
-  cerrarModal();
-});
-
-modalInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    modalAccept.click();
-  }
-});
-
 function mostrarConfirm(texto, onConfirm, onCancel) {
-  modalText.textContent = texto;
-  modalInput.classList.add("oculto");
-  modalInput.value = "";
-  modalConfirmCallback = onConfirm;
-  modalPromptCallback = null;
-  modalCancelCallback = onCancel || null;
-  modalOverlay.classList.remove("oculto");
+    modalText.textContent = texto;
+    modalInput.classList.add("oculto");
+    modalInput.value = "";
+
+    modalCancel.textContent = "No";
+    modalAccept.textContent = "Sí";
+
+    modalConfirmCallback = onConfirm;
+    modalPromptCallback = null;
+    modalOverlay.classList.remove("oculto");
 }
 
 function mostrarPrompt(texto, defaultValue, onSubmit, onCancel) {
-  modalText.textContent = texto;
-  modalInput.classList.remove("oculto");
-  modalInput.value = defaultValue !== undefined ? defaultValue : "";
-  modalPromptCallback = onSubmit;
-  modalConfirmCallback = null;
-  modalCancelCallback = onCancel || null;
-  modalOverlay.classList.remove("oculto");
-  setTimeout(() => modalInput.focus(), 0);
+    modalText.textContent = texto;
+    modalInput.classList.remove("oculto");
+    modalInput.value = defaultValue !== undefined ? defaultValue : "";
+
+    modalCancel.textContent = "Cancelar";
+    modalAccept.textContent = "Aceptar";
+
+    modalPromptCallback = onSubmit;
+    modalConfirmCallback = null;
+    modalOverlay.classList.remove("oculto");
+    setTimeout(() => modalInput.focus(), 0);
 }
 
-function render() {
-  lista.innerHTML = "";
+function cerrarModal() {
+    modalOverlay.classList.add("oculto");
+    modalInput.classList.add("oculto");
+    
+    modalAccept.classList.remove("oculto");
+    modalCancel.classList.remove("oculto");
+ 
+    modalCosto.classList.add("oculto");
+    modalPrecio.classList.add("oculto");
+    modalCancelar.classList.add("oculto");
 
-  productos.forEach(p => {
-    lista.innerHTML += `
-      <p>
-        <span class="nombre-producto">${p.nombre}</span>
-        <span class="info-producto">Precio: ${p.precio.toLocaleString("es-CO", {
-          style: "currency",
-          currency: "COP"
-        })} | Stock: ${p.stock}</span>
-        <button class="btn-restock" onclick="restock(${p.id})">Restock</button>
-        <button class="btn-eliminar" onclick="eliminar(${p.id})">Eliminar</button>
-        <button class="btn-editar" onclick="editar(${p.id})">Editar</button>
-      </p>
-    `;
-  });
+    modalInput.value = "";
+    modalConfirmCallback = null;
+    modalPromptCallback = null;
+    productoEditandoId = null;
+}
+modalPrecio.addEventListener("click", () => {
+    if (modalOverlay.classList.contains("oculto") || !productoEditandoId) return;
+
+    const idLimpio = String(productoEditandoId).trim();
+    const producto = productos.find(p => String(p.id).trim() === idLimpio);
+
+    if (!producto) {
+        mostrarMensaje("Error: Producto no encontrado", "error");
+        cerrarModal();
+        return;
+    }
+    cerrarModal();
+    mostrarPrompt(`Nuevo precio para ${producto.nombre}:`, producto.precio, async (nuevoValor) => {
+        const num = Number(nuevoValor);
+        if (isNaN(num) || num < 0) return mostrarMensaje("Valor no válido", "error");
+        
+        producto.precio = num;
+        await sincronizarConNube(producto);
+    });
+});
+
+modalCosto.addEventListener("click", () => {
+    if (modalOverlay.classList.contains("oculto") || !productoEditandoId) return;
+
+    const idLimpio=String(productoEditandoId).trim();
+    const producto=productos.find(p => String(p.id).trim() === idLimpio);
+
+    if (!producto) {
+        mostrarMensaje("Error: Producto no encontrado", "error");
+        cerrarModal();
+        return;
+    }
+
+    cerrarModal();
+    mostrarPrompt(`Nuevo costo para ${producto.nombre}:`, producto.costo, async (nuevoValor) => {
+        const num = Number(nuevoValor);
+        if (isNaN(num)||num<0) return mostrarMensaje("Valor no válido", "error");
+
+        producto.costo=num;
+        await sincronizarConNube(producto);
+    });
+});
+
+modalCancelar.addEventListener("click", () => {
+    cerrarModal();
+});
+
+modalAccept.addEventListener("click", () => {
+    if (modalOverlay.classList.contains("oculto")) return;
+    if (!modalInput.classList.contains("oculto")) {
+        if (typeof modalPromptCallback === "function") modalPromptCallback(modalInput.value);
+    } else {
+        if (typeof modalConfirmCallback === "function") modalConfirmCallback();
+    }
+    cerrarModal();
+});
+
+modalCancel.addEventListener("click", () => {
+    if (modalOverlay.classList.contains("oculto")) return;
+    cerrarModal();
+});
+
+modalInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+        modalAccept.click();
+    }
+});
+
+//Obtener productos de la nube 
+async function obtenerProductos() {
+    try {
+        const respuesta = await fetch(`${API_URL}?resource=productos`);
+        const resultado = await respuesta.json();
+
+        if (resultado.success) {
+            productos = resultado.data; // Variable global en data.js
+            renderizarTabla();
+        }
+    } catch (error) {
+        console.error("Error cargando productos:", error);
+        mostrarMensaje("Error de conexión con la nube", "error");
+    }
+}
+
+//Crear o Actualizar en la nube
+async function sincronizarConNube(producto, esNuevo = false) {
+    try {
+        // Mostramos un mensaje de "Cargando..." para mejorar la UX
+        mostrarMensaje("Sincronizando...", "info");
+
+        const respuesta = await fetch(`${API_URL}?resource=productos`, {
+            method: "POST",
+           
+            mode: "no-cors",
+            body: JSON.stringify(producto)
+        });
+
+  
+        mostrarMensaje(esNuevo ? "Producto creado" : "Producto actualizado");
+
+        renderizarTabla();
+        setTimeout(obtenerProductos, 2000);
+
+    } catch (error) {
+        console.error("Error en POST:", error);
+        mostrarMensaje("Error de red", "error");
+    }
+}
+
+
+function cancelar() {
+    nombreInput.value = "";
+    precioInput.value = "";
+    stockInput.value = "";
+    costoInput.value = "";
+}
+
+
+async function crear() {
+    const nombre = nombreInput.value.trim();
+    const precio = Number(precioInput.value);
+    const stock = Number(stockInput.value) || 0;
+    const costo = Number(costoInput.value) || 0;
+
+    if (!nombre || precio <= 0) {
+        mostrarMensaje("❌ Ingresa un nombre y precio válido", "error");
+        return;
+    }
+
+    // Buscamos si ya existe para decidir si es UPDATE o CREATE
+    const existente = productos.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+
+    const productoData = {
+        id: existente ? existente.id : Date.now().toString(),
+        nombre: nombre,
+        precio: precio,
+        stock: stock,
+        costo: costo,
+        seguimientoInventario: borrarInput ? borrarInput.checked : false,
+        categoria: "Papelería",
+        imagen: "https://via.placeholder.com/150"
+    };
+
+    await sincronizarConNube(productoData, !existente);
+    cancelar(); 
+}
+
+
+async function restock(id) {
+    // 1. Buscamos el producto por ID
+    const producto = productos.find(p => Number(p.id) === Number(id));
+    if (!producto) return;
+
+    // 2. Abrimos el prompt
+    mostrarPrompt(`Agregar stock a: ${producto.nombre} (Actual: ${producto.stock})`, "", async (valor) => {
+        const cantidadASumar = Number(valor);
+
+        // Validamos que sea un número válido y mayor a 0
+        if (isNaN(cantidadASumar) || cantidadASumar <= 0) {
+            mostrarMensaje("Por favor, ingresa una cantidad válida", "error");
+            return;
+        }
+
+        // 3. Actualizamos el valor (Sumando la nueva cantidad al stock actual)
+        producto.stock = Number(producto.stock) + cantidadASumar;
+
+        setTimeout(obtenerProductos, 2000);
+
+        // 4. Sincronizamos
+        producto.id = producto.id.toString();
+        await sincronizarConNube(producto);
+    });
+}
+async function eliminar(id) {
+    // 1. Buscamos el producto localmente para mostrar el nombre en la confirmación
+    const producto = productos.find(p => Number(p.id) === Number(id));
+    if (!producto) return;
+
+    mostrarConfirm(`¿Deseas eliminar definitivamente "${producto.nombre}"?`, async () => {
+        try {
+            mostrarMensaje("Eliminando", "info");
+
+            const respuesta = await fetch(`${API_URL}?deleteId=${id}`, {
+                method: "POST",
+                mode: "no-cors" // Mantenemos no-cors por compatibilidad con Google Apps Script
+            });
+
+            // 3. Actualizamos la interfaz de inmediato (Optimistic UI)
+            // Filtramos el array local para quitar el producto eliminado
+            productos = productos.filter(p => Number(p.id) !== Number(id));
+            renderizarTabla();
+
+            mostrarMensaje("Producto eliminado con éxito");
+            setTimeout(obtenerProductos, 2000);
+
+        } catch (error) {
+            console.error("Error al eliminar:", error);
+            mostrarMensaje("No se pudo eliminar el producto", "error");
+        }
+    });
+}
+
+
+async function editar(id) {
+    const producto = productos.find(p => Number(p.id) === Number(id));
+    if (!producto) return;
+
+    mostrarEditables(`¿Qué deseas modificar de ${producto.nombre}?`, id);
+}
+
+
+
+function renderizarTabla() {
+    listaContenedor.innerHTML = "";
+
+    productos.forEach(p => {
+        const item = document.createElement("div");
+        item.className = "producto-item"; 
+        item.innerHTML = `
+            <p>
+                <strong>${p.nombre}</strong> - 
+
+                Precio: ${Number(p.precio).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })} | 
+                Stock: <b class="${p.stock < 5 ? 'stock-bajo' : ''}">${p.stock}</b>|
+                Costo de adquisición: ${Number(p.costo || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                
+            </p>
+            <div class="acciones">
+                <button class="restock" onclick="restock(${p.id})">Restock</button>
+                <button class="editar" onclick="editar(${p.id})">Editar</button>
+                <button class="eliminar" onclick="eliminar(${p.id})">Eliminar</button> 
+            </div>
+            <hr>
+        `;
+        listaContenedor.appendChild(item);
+    });
 }
 
 function mostrarMensaje(texto, tipo = "success") {
-  mensajeBox.textContent = texto;
-  mensajeBox.className = "";
-  mensajeBox.classList.add("mostrar", tipo);
-
-  setTimeout(() => {
-    mensajeBox.classList.remove("mostrar");
-  }, 2500);
-}
-
-function crear() {
-  if (!nombre.value || precio.value <= 0) {
-    mostrarMensaje("Datos inválidos", "error");
-    return;
-  }
-
-  const nuevoProducto = {
-    id: Date.now(),
-    nombre: nombre.value,
-    categoria: "Sin categoría",
-    precio: Number(precio.value),
-    costo: 0,
-    stock: Number(stockInput.value) || 0,
-    seguimientoInventario: true,
-    imagen: "sin-imagen.jpg",
-    descripcion: "Producto agregado manualmente"
-  };
-
-  productos.push(nuevoProducto);
-  localStorage.setItem("productos", JSON.stringify(productos));
-
-  nombre.value = "";
-  precio.value = "";
-  stockInput.value = "";
-
-  render();
-}
-
-function restock(id) {
-  const producto = productos.find(p => p.id === id);
-  if (!producto) {
-    mostrarMensaje("Producto no encontrado", "error");
-    return;
-  }
-
-  mostrarPrompt("Cantidad a agregar al stock:", "", value => {
-    const cantidad = Number(value);
-    if (isNaN(cantidad) || cantidad <= 0) {
-      mostrarMensaje("Cantidad inválida", "error");
-      return;
-    }
-
-    producto.stock += cantidad;
-    localStorage.setItem("productos", JSON.stringify(productos));
-    render();
-    mostrarMensaje("Stock actualizado", "success");
-  });
-}
-
-function eliminar(id) {
-  mostrarConfirm("¿Eliminar producto?", () => {
-    productos = productos.filter(p => p.id !== id);
-    localStorage.setItem("productos", JSON.stringify(productos));
-    render();
-    mostrarMensaje("Producto eliminado", "success");
-  });
-}
-
-function editar(id) {
-  const producto = productos.find(p => p.id === id);
-  if (!producto) {
-    mostrarMensaje("Producto no encontrado", "error");
-    return;
-  }
-
-  mostrarPrompt("Nuevo precio del producto:", producto.precio, value => {
-    const nuevoPrecio = Number(value);
-    if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
-      mostrarMensaje("Precio inválido", "error");
-      return;
-    }
-
-    producto.precio = nuevoPrecio;
-    localStorage.setItem("productos", JSON.stringify(productos));
-    render();
-    mostrarMensaje("Precio actualizado", "success");
-  });
+    if (!mensajeBox) return;
+    mensajeBox.textContent = texto;
+    mensajeBox.className = `mensaje ${tipo} mostrar`;
+    setTimeout(() => mensajeBox.classList.remove("mostrar"), 3000);
 }
 
 btnVolver.onclick = () => {
-  window.location.href = "PapelLuna.html";
+    window.location.href = "PapelLuna.html";
 };
 
-render();
+
+
+obtenerProductos();
