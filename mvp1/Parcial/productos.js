@@ -150,14 +150,13 @@ modalInput.addEventListener("keydown", (event) => {
     }
 });
 
-//Obtener productos de la nube 
 async function obtenerProductos() {
     try {
         const respuesta = await fetch(`${API_URL}?resource=productos`);
         const resultado = await respuesta.json();
 
         if (resultado.success) {
-            productos = resultado.data; // Variable global en data.js
+            productos = resultado.data;
             renderizarTabla();
         }
     } catch (error) {
@@ -210,8 +209,6 @@ async function crear() {
         mostrarMensaje("❌ Ingresa un nombre y precio válido", "error");
         return;
     }
-
-    // Buscamos si ya existe para decidir si es UPDATE o CREATE
     const existente = productos.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
 
     const productoData = {
@@ -231,32 +228,28 @@ async function crear() {
 
 
 async function restock(id) {
-    // 1. Buscamos el producto por ID
+    // Buscamos el producto por ID
     const producto = productos.find(p => Number(p.id) === Number(id));
     if (!producto) return;
 
-    // 2. Abrimos el prompt
     mostrarPrompt(`Agregar stock a: ${producto.nombre} (Actual: ${producto.stock})`, "", async (valor) => {
         const cantidadASumar = Number(valor);
 
-        // Validamos que sea un número válido y mayor a 0
         if (isNaN(cantidadASumar) || cantidadASumar <= 0) {
             mostrarMensaje("Por favor, ingresa una cantidad válida", "error");
             return;
         }
 
-        // 3. Actualizamos el valor (Sumando la nueva cantidad al stock actual)
         producto.stock = Number(producto.stock) + cantidadASumar;
 
         setTimeout(obtenerProductos, 2000);
 
-        // 4. Sincronizamos
         producto.id = producto.id.toString();
         await sincronizarConNube(producto);
     });
 }
 async function eliminar(id) {
-    // 1. Buscamos el producto localmente para mostrar el nombre en la confirmación
+
     const producto = productos.find(p => Number(p.id) === Number(id));
     if (!producto) return;
 
@@ -266,11 +259,9 @@ async function eliminar(id) {
 
             const respuesta = await fetch(`${API_URL}?deleteId=${id}`, {
                 method: "POST",
-                mode: "no-cors" // Mantenemos no-cors por compatibilidad con Google Apps Script
+                mode: "no-cors" 
             });
 
-            // 3. Actualizamos la interfaz de inmediato (Optimistic UI)
-            // Filtramos el array local para quitar el producto eliminado
             productos = productos.filter(p => Number(p.id) !== Number(id));
             renderizarTabla();
 
