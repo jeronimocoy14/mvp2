@@ -35,14 +35,16 @@ function renderProductos(lista) {
 }
 const buscador = document.getElementById("buscador");
 
-buscador.addEventListener("input", () => {
-    const texto = buscador.value.toLowerCase();
-    const filtrados = productos.filter(p =>
-        p.nombre.toLowerCase().includes(texto) ||
-        p.categoria.toLowerCase().includes(texto)
-    );
-    renderProductos(filtrados);
-});
+if (buscador) {
+    buscador.addEventListener("input", () => {
+        const texto = buscador.value.toLowerCase();
+        const filtrados = productos.filter(p =>
+            p.nombre.toLowerCase().includes(texto) ||
+            p.categoria.toLowerCase().includes(texto)
+        );
+        renderProductos(filtrados);
+    });
+}
 function contadorCarritoActualizar() {
     if (contadorCarrito) {
         const total = carrito.reduce((acc, p) => acc + (Number(p.cantidad) || 0), 0);
@@ -102,6 +104,11 @@ function cerrarModal() {
 
 
 function verCarrito() {
+   
+    if (!ID_SESION) {
+        console.error("Error: No se ha generado un ID de sesión");
+        return;
+    }
     window.location.href = `carrito.html?sesion=${ID_SESION}`;
 }
 

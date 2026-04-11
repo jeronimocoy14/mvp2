@@ -2,24 +2,24 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Venta en curso</title>
+  <title>Venta en curso - Papel y Luna</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="mensaje"></div>
+<div id="mensaje" class="mensaje"></div>
 
 <h1>Venta en curso</h1>
 
-<div id="lista"></div>
+<div id="carrito-lista"></div> 
 
-<h2>Total: <span id="total">$0</span></h2>
+<h2>Total: <span id="total-carrito">$0</span></h2>
 
 <select id="metodo">
   <option value="">Seleccione método de pago</option>
   <option value="Efectivo">Efectivo</option>
   <option value="Nequi">Nequi</option>
-  <option value="Debe">Debe</option>
+  <option value="tarjeta">Tarjeta</option>
 </select>
 
 <div id="efectivo-box" style="display:none">
@@ -27,19 +27,20 @@
   <p>Cambio: <span id="cambio">$0</span></p>
 </div>
 
-<button id="cerrar">Cerrar venta</button>
-<button id="volver">Volver a la página principal</button>
-<button id="vaciar">Vaciar carrito</button>
+<div class="acciones">
+  <button id="cerrar">Cerrar venta</button>
+  <button id="vaciar" onclick="vaciar_carrito()">Vaciar carrito</button>
+  <button id="volver" onclick="window.location.href='PapelLuna.html'">Volver al catálogo</button>
+</div>
 
 <footer>
   <p>© 2026 Papel y Luna. Todos los derechos reservados.</p>
   <p><strong>Dirección:</strong> Calle 10 #5-35, Chía, Cundinamarca</p>
   <p><strong>Teléfono:</strong> 350 884 1010</p>
-  <p><strong>Horarios:</strong></p>
-  <p>Lunes a viernes: 7:00 a.m. – 8:00 p.m.</p>
-  <p>Sábados y domingos: 9:00 a.m. – 6:00 p.m.</p>
 </footer>
 
+<script src="data.js"></script>
 <script src="carrito.js"></script>
+
 </body>
 </html>
