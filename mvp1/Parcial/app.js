@@ -97,24 +97,13 @@ function mostrarMensaje(texto, tipo = "success") {
 }
  
 
-function cerrarModal() {
-    modalOverlay.classList.add("oculto");
-}
-
-
-
 function verCarrito() {
    
     if (!ID_SESION) {
         console.error("Error: No se ha generado un ID de sesión");
         return;
     }
-    window.location.href = `carrito.html?sesion=${ID_SESION}`;
-}
-
-function createResponse(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+    window.location.href = `Carrito.html?sesion=${ID_SESION}`;
 }
 
 obtenerProductos();
