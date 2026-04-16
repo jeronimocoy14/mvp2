@@ -16,6 +16,49 @@ function mostrarMensaje(texto, tipo = "error") {
   setTimeout(() => mensajeBox.classList.remove("mostrar"), 3000);
 }
 
+function parseItems(items) {
+  if (Array.isArray(items)) return items;
+  if (typeof items === 'string') {
+    try {
+      const parsed = JSON.parse(items);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      try {
+        const corrected = items.replace(/'/g, '"');
+        const parsed = JSON.parse(corrected);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_error) {
+        return [];
+      }
+    }
+  }
+  return [];
+}
+
+function parseNumber(value) {
+  if (typeof value === 'number') return value;
+  if (typeof value !== 'string') return 0;
+  const text = value.trim();
+  if (text === '') return 0;
+  if (/[A-Za-z]/.test(text)) return 0;
+
+  let cleaned = text.replace(/[^0-9.,-]/g, '');
+  if (cleaned === '') return 0;
+
+  if (cleaned.includes(',') && cleaned.includes('.')) {
+    if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+      cleaned = cleaned.replace(/\./g, '').replace(/,/g, '.');
+    } else {
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  } else if (cleaned.includes(',')) {
+    cleaned = cleaned.replace(/,/g, '.');
+  }
+
+  const number = Number(cleaned);
+  return Number.isNaN(number) ? 0 : number;
+}
+
 function renderVentas(ventas) {
   if (!ventasContenedor) return;
 
@@ -25,15 +68,16 @@ function renderVentas(ventas) {
   }
 
   const html = ventas.map(venta => {
-    const itemsHtml = (venta.items || []).map(item => {
-      const precio = Number(item.precio || item.Precio || 0);
-      const cantidad = Number(item.cantidad || item.Cantidad || item.cant || item.quantity || 0);
+    const items = parseItems(venta.items || venta.Items);
+    const itemsHtml = items.map(item => {
+      const precio = parseNumber(item.precio || item.Precio || 0);
+      const cantidad = parseNumber(item.cantidad || item.Cantidad || item.cant || item.quantity || 0);
       return `<li>${item.nombre || item.Nombre || item.producto || "Producto"} — ${cantidad} x ${precio.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</li>`;
     }).join("");
 
-    const total = Number(venta.total || venta.Total || 0);
-    const recibido = Number(venta.recibido ?? venta.Recibido ?? 0);
-    const cambio = Number(venta.cambio ?? venta.Cambio ?? 0);
+    const total = parseNumber(venta.total || venta.Total || 0);
+    const recibido = parseNumber(venta.recibido ?? venta.Recibido ?? 0);
+    const cambio = parseNumber(venta.cambio ?? venta.Cambio ?? 0);
     const pagoRaw = venta.motododepago || venta.motodopago || venta.metodo || venta.metodoPago || "-";
     const pago = String(pagoRaw).trim();
     const pagoLower = pago.toLowerCase();
