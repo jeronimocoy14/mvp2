@@ -3,6 +3,9 @@ const nombreInput = document.getElementById("nombre");
 const precioInput = document.getElementById("precio");
 const stockInput = document.getElementById("stock");
 const costoInput = document.getElementById("costo");
+const categoriaInput = document.getElementById("categoria");
+const proveedorInput = document.getElementById("proveedor");
+const imagenInput = document.getElementById("imagen");
 const borrarInput = document.getElementById("borrar");
 const editarInput = document.getElementById("editar");
 const restockInput = document.getElementById("restock");
@@ -150,6 +153,25 @@ modalInput.addEventListener("keydown", (event) => {
     }
 });
 
+function cargarOpcionesEntidades() {
+    const categorias = cargarEntidades('categorias');
+    const proveedores = cargarEntidades('proveedores');
+
+    const categoriasDatalist = document.getElementById('categorias-datalist');
+    if (categoriasDatalist) {
+        categoriasDatalist.innerHTML = categorias
+            .map(c => `<option value="${c.nombre}"></option>`)
+            .join('');
+    }
+
+    const proveedoresDatalist = document.getElementById('proveedores-datalist');
+    if (proveedoresDatalist) {
+        proveedoresDatalist.innerHTML = proveedores
+            .map(p => `<option value="${p.nombre}"></option>`)
+            .join('');
+    }
+}
+
 async function obtenerProductos() {
     try {
         const respuesta = await fetch(`${API_URL}?resource=productos`);
@@ -168,17 +190,21 @@ async function obtenerProductos() {
 //Crear o Actualizar en la nube
 async function sincronizarConNube(producto, esNuevo = false) {
     try {
-        // Mostramos un mensaje de "Cargando..." para mejorar la UX
         mostrarMensaje("Sincronizando...", "info");
 
         const respuesta = await fetch(`${API_URL}?resource=productos`, {
             method: "POST",
-           
-            mode: "no-cors",
+            mode: "cors",
+            headers: {
+                'Content-Type': 'application/json; charset=UTF-8'
+            },
             body: JSON.stringify(producto)
         });
 
-  
+        if (!respuesta.ok) {
+            console.warn('Respuesta al sincronizar producto:', respuesta.status);
+        }
+
         mostrarMensaje(esNuevo ? "Producto creado" : "Producto actualizado");
 
         renderizarTabla();
@@ -204,6 +230,9 @@ async function crear() {
     const precio = Number(precioInput.value);
     const stock = Number(stockInput.value) || 0;
     const costo = Number(costoInput.value) || 0;
+    const categoria = categoriaInput?.value.trim() || "General";
+    const proveedor = proveedorInput?.value.trim() || "Sin proveedor";
+    const imagen = imagenInput?.value.trim() || "https://via.placeholder.com/150";
 
     if (!nombre || precio <= 0) {
         mostrarMensaje("❌ Ingresa un nombre y precio válido", "error");
@@ -218,8 +247,9 @@ async function crear() {
         stock: stock,
         costo: costo,
         seguimientoInventario: borrarInput ? borrarInput.checked : false,
-        categoria: "Papelería",
-        imagen: "https://via.placeholder.com/150"
+        categoria: categoria,
+        proveedor: proveedor,
+        imagen: imagen
     };
 
     await sincronizarConNube(productoData, !existente);
@@ -257,10 +287,17 @@ async function eliminar(id) {
         try {
             mostrarMensaje("Eliminando", "info");
 
-            const respuesta = await fetch(`${API_URL}?deleteId=${id}`, {
+            const respuesta = await fetch(`${API_URL}?resource=productos&deleteId=${id}`, {
                 method: "POST",
-                mode: "no-cors" 
+                mode: "cors",
+                headers: {
+                    'Content-Type': 'application/json; charset=UTF-8'
+                }
             });
+
+            if (!respuesta.ok) {
+                console.warn('Error al eliminar producto:', respuesta.status);
+            }
 
             productos = productos.filter(p => Number(p.id) !== Number(id));
             renderizarTabla();
@@ -294,12 +331,11 @@ function renderizarTabla() {
         item.innerHTML = `
             <p>
                 <strong>${p.nombre}</strong> - 
-
                 Precio: ${Number(p.precio).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })} | 
-                Stock: <b class="${p.stock < 5 ? 'stock-bajo' : ''}">${p.stock}</b>|
-                Costo de adquisición: ${Number(p.costo || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
-                
+                Stock: <b class="${p.stock < 5 ? 'stock-bajo' : ''}">${p.stock}</b> |
+                Costo: ${Number(p.costo || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
             </p>
+            <p class="info-producto">Categoría: ${p.categoria || 'General'} | Proveedor: ${p.proveedor || 'Desconocido'}</p>
             <div class="acciones">
                 <button class="restock" onclick="restock(${p.id})">Restock</button>
                 <button class="editar" onclick="editar(${p.id})">Editar</button>
@@ -325,3 +361,4 @@ btnVolver.onclick = () => {
 
 
 obtenerProductos();
+cargarOpcionesEntidades();

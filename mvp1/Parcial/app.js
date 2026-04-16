@@ -34,11 +34,90 @@ function limpiarCarritoLocal(sesion) {
     localStorage.removeItem(getCartStorageKey(sesion));
 }
 
+function cargarStorageJSON(key) {
+    try {
+        return JSON.parse(localStorage.getItem(key) || '[]');
+    } catch {
+        return [];
+    }
+}
+
+function guardarStorageJSON(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+        // Ignorar fallos de almacenamiento.
+    }
+}
+
+function cargarVentasAbiertas() {
+    return cargarStorageJSON('papel_luna_ventas_abiertas');
+}
+
+function guardarVentaAbiertaMeta(sesion, meta) {
+    const ventas = cargarVentasAbiertas();
+    const index = ventas.findIndex(v => String(v.id) === String(sesion));
+    const registro = {
+        id: sesion,
+        fecha: meta.fecha || new Date().toLocaleString('es-CO'),
+        total: Number(meta.total) || 0,
+        actualizado: new Date().toISOString(),
+        items: meta.items || [],
+        estado: meta.estado || 'abierta'
+    };
+
+    if (index >= 0) {
+        ventas[index] = registro;
+    } else {
+        ventas.push(registro);
+    }
+    guardarStorageJSON('papel_luna_ventas_abiertas', ventas);
+}
+
+function borrarVentaAbiertaMeta(sesion) {
+    const ventas = cargarVentasAbiertas().filter(v => String(v.id) !== String(sesion));
+    guardarStorageJSON('papel_luna_ventas_abiertas', ventas);
+}
+
+function renderVentasAbiertas() {
+    const banner = document.getElementById('venta-abierta-banner');
+    if (!banner) return;
+    const ventas = cargarVentasAbiertas();
+    if (!ventas.length) {
+        banner.classList.add('oculto');
+        banner.innerHTML = '';
+        return;
+    }
+
+    banner.classList.remove('oculto');
+    banner.innerHTML = `<div class="panel-card">
+        <h3>Ventas abiertas</h3>
+        <p>Puedes retomar cualquier venta pendiente desde aquí.</p>
+        <div class="open-sale-list">
+            ${ventas.map(v => `
+                <div class="open-sale-item">
+                    <strong>${v.id}</strong>
+                    <span>${v.fecha}</span>
+                    <span>Total ${Number(v.total).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                    <button class="btn btn-secondary" onclick="continuarVenta('${v.id}')">Continuar</button>
+                </div>
+            `).join('')}
+        </div>
+    </div>`;
+}
+
+function continuarVenta(sesion) {
+    if (!sesion) return;
+    window.location.href = `Carrito.html?sesion=${sesion}`;
+}
+
 const carritoGuardado = cargarCarritoLocal(ID_SESION);
 if (carritoGuardado.length) {
     carrito = carritoGuardado;
     contadorCarritoActualizar();
 }
+
+renderVentasAbiertas();
 
 async function obtenerProductos() {
     const catalogo = document.getElementById("catalogo");
@@ -47,14 +126,33 @@ async function obtenerProductos() {
     }
 
     try {
-        const respuesta = await fetch(`${API_URL}?resource=productos`);
-        const resultado = await respuesta.json();
+        const respuesta = await fetch(`${API_URL}?resource=productos`, {
+            method: 'GET',
+            mode: 'cors'
+        });
 
+        if (!respuesta.ok) {
+            const texto = await respuesta.text();
+            console.error('Error HTTP al cargar productos:', respuesta.status, texto);
+            throw new Error(`HTTP ${respuesta.status}`);
+        }
+
+        const resultado = await respuesta.json();
         if (resultado.success && Array.isArray(resultado.data)) {
-            productos = resultado.data;
+            productos = resultado.data.map(producto => ({
+                id: producto.id ?? producto.ID ?? producto.id_producto ?? producto.productoId,
+                nombre: producto.nombre ?? producto.Nombre ?? producto.producto ?? 'Sin nombre',
+                precio: Number(producto.precio ?? producto.Precio ?? producto.valor ?? 0),
+                stock: Number(producto.stock ?? producto.Stock ?? 0),
+                categoria: producto.categoria ?? producto.Categoria ?? 'General',
+                imagen: producto.imagen || producto.imagenURL || 'https://via.placeholder.com/250',
+                costo: Number(producto.costo ?? producto.Costo ?? 0)
+            }));
             renderProductos(productos);
             return;
         }
+
+        console.warn('Respuesta de productos sin éxito:', resultado);
     } catch (error) {
         console.error("Error cargando productos desde Sheets:", error);
     }
@@ -75,24 +173,28 @@ function renderProductos(lista) {
 
     lista.forEach(p => {
         console.log("Dibujando producto:", p);
-        const cantidad = cantidadesProducto[p.id] || 1;
+        const productoId = String(p.id ?? p.ID ?? p.id_producto ?? 'sin-id');
+        const cantidad = cantidadesProducto[productoId] || 1;
         const stock = Number(p.stock) || 0;
         const minusDisabled = cantidad <= 1 ? "disabled" : "";
         const plusDisabled = stock > 0 && cantidad >= stock ? "disabled" : "";
+        const nombre = p.nombre || p.Nombre || 'Producto';
+        const precio = Number(p.precio) || 0;
+        const imagen = p.imagen || p.imagenURL || 'https://via.placeholder.com/250';
 
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
-    <img src="${p.imagen}" alt="${p.nombre}">
-    <h3>${p.nombre}</h3>
-    <p>${Number(p.precio).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</p>
+    <img src="${imagen}" alt="${nombre}">
+    <h3>${nombre}</h3>
+    <p>${precio.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</p>
     <p>Stock: <strong>${stock}</strong></p>
     <div class="cantidad-control">
-      <button class="btn btn-secondary btn-cantidad" type="button" onclick="ajustarCantidadProducto('${p.id}', -1)" ${minusDisabled}>-</button>
-      <span id="cantidad-${p.id}" class="cantidad-valor">${cantidad}</span>
-      <button class="btn btn-primary btn-cantidad" type="button" onclick="ajustarCantidadProducto('${p.id}', 1)" ${plusDisabled}>+</button>
+      <button class="btn btn-secondary btn-cantidad" type="button" onclick="ajustarCantidadProducto('${productoId}', -1)" ${minusDisabled}>-</button>
+      <span id="cantidad-${productoId}" class="cantidad-valor">${cantidad}</span>
+      <button class="btn btn-primary btn-cantidad" type="button" onclick="ajustarCantidadProducto('${productoId}', 1)" ${plusDisabled}>+</button>
     </div>
-    <button class="btn btn-primary" onclick="agregar('${p.id}')">Agregar</button>
+    <button class="btn btn-primary" onclick="agregar('${productoId}')">Agregar</button>
 `;
         catalogo.appendChild(card);
     });
@@ -102,10 +204,11 @@ const buscador = document.getElementById("buscador");
 if (buscador) {
     buscador.addEventListener("input", () => {
         const texto = buscador.value.toLowerCase();
-        const filtrados = productos.filter(p =>
-            p.nombre.toLowerCase().includes(texto) ||
-            p.categoria.toLowerCase().includes(texto)
-        );
+        const filtrados = productos.filter(p => {
+            const nombre = String(p.nombre || p.Nombre || '').toLowerCase();
+            const categoria = String(p.categoria || p.Categoria || '').toLowerCase();
+            return nombre.includes(texto) || categoria.includes(texto);
+        });
         renderProductos(filtrados);
     });
 }
@@ -163,14 +266,25 @@ async function agregar(id) {
             },
             body: JSON.stringify(datos)
         });
-    
+        if (!respuesta.ok) {
+            console.warn('La petición al carrito devolvió un error', respuesta.status);
+        }
+
         if (typeof actualizarContadorInterfaz === "function") {
             actualizarContadorInterfaz();
         }
+        guardarVentaAbiertaMeta(ID_SESION, {
+            total: carrito.reduce((acc, item) => acc + Number(item.precio || 0) * Number(item.cantidad || 0), 0),
+            items: carrito,
+            actualizado: new Date().toISOString(),
+            estado: 'abierta'
+        });
+        renderVentasAbiertas();
         mostrarMensaje("Producto agregado al carrito");
 
     } catch (error) {
         console.error("Error al conectar con la nube:", error);
+        mostrarMensaje("No se pudo sincronizar el carrito con el servicio externo.", "warning");
     }
 }
 
@@ -215,4 +329,6 @@ function verCarrito() {
     window.location.href = `Carrito.html?sesion=${ID_SESION}`;
 }
 
-obtenerProductos();
+document.addEventListener('DOMContentLoaded', () => {
+    obtenerProductos();
+});

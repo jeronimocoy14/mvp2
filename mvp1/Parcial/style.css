@@ -632,6 +632,115 @@ button:disabled {
   z-index: 9998;
 }
 
+.open-sale-banner {
+  margin: 24px auto;
+  max-width: 1000px;
+}
+
+.open-sale-banner .open-sale-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.open-sale-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgba(219, 226, 239, 0.95);
+  border-radius: 18px;
+  background: white;
+}
+
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tab-button {
+  padding: 12px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  background: #f8f9ff;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.tab-button.active,
+.tab-button:hover {
+  background: var(--color-primario);
+  color: white;
+  border-color: transparent;
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+.entity-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.entity-card {
+  padding: 18px;
+  background: white;
+  border-radius: 22px;
+  border: 1px solid rgba(219, 226, 239, 0.95);
+  box-shadow: 0 16px 32px rgba(16, 24, 40, 0.05);
+}
+
+.entity-card h4 {
+  margin-bottom: 10px;
+}
+
+.entity-card p {
+  margin: 6px 0;
+  color: #475569;
+}
+
+.entity-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.table-list {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.table-list th,
+.table-list td {
+  border: 1px solid rgba(219, 226, 239, 0.95);
+  padding: 14px;
+  text-align: left;
+}
+
+.table-list th {
+  background: #f8faff;
+}
+
+.table-list tbody tr:hover {
+  background: #f4f7ff;
+}
+
+.producto-meta {
+  font-size: 0.95rem;
+  color: #64748b;
+}
+
 .modal-box {
   background: white;
   border-radius: 24px;

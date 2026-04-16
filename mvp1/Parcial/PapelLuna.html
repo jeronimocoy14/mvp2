@@ -19,6 +19,8 @@
     <a href="PapelLuna.html" class="btn btn-link">Nueva venta</a>
     <a href="productos.html" class="btn btn-link">Productos</a>
     <a href="historial.html" class="btn btn-link">Historial</a>
+    <a href="compras.html" class="btn btn-link">Compras</a>
+    <a href="entidades.html" class="btn btn-link">Entidades</a>
     <a href="#" onclick="verCarrito(); return false;" class="btn btn-secondary">Venta en curso 🛒 (<span id="contador-carrito">0</span>)</a>
   </nav>
 </header>
@@ -28,6 +30,7 @@
     <h2>Catálogo de productos</h2>
     <p class="subtitle">Escribe el nombre o la categoría para filtrar y comienza la venta con un solo clic.</p>
   </section>
+  <div id="venta-abierta-banner" class="open-sale-banner oculto"></div>
   <input type="text" id="buscador" placeholder="Buscar producto">
   <div id="catalogo" class="grid"></div>
   <div id="mensaje"></div>

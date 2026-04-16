@@ -71,6 +71,68 @@ function obtenerTotalCarrito() {
     return carrito.reduce((sum, item) => sum + (Number(item.precio) || 0) * (Number(item.cantidad) || 0), 0);
 }
 
+function cargarStorageJSON(key) {
+    try {
+        return JSON.parse(localStorage.getItem(key) || '[]');
+    } catch {
+        return [];
+    }
+}
+
+function guardarStorageJSON(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+        // Ignorar fallos de almacenamiento.
+    }
+}
+
+function cargarVentasAbiertas() {
+    return cargarStorageJSON('papel_luna_ventas_abiertas');
+}
+
+function guardarVentaAbiertaLocal() {
+    if (!miSesion || !carrito.length) return;
+    const ventas = cargarVentasAbiertas();
+    const index = ventas.findIndex(v => String(v.id) === String(miSesion));
+    const total = obtenerTotalCarrito();
+    const registro = {
+        id: miSesion,
+        fecha: new Date().toLocaleString('es-CO'),
+        total: total,
+        items: carrito,
+        actualizado: new Date().toISOString(),
+        estado: 'abierta'
+    };
+    if (index >= 0) {
+        ventas[index] = registro;
+    } else {
+        ventas.push(registro);
+    }
+    guardarStorageJSON('papel_luna_ventas_abiertas', ventas);
+}
+
+function borrarVentaAbiertaLocal() {
+    if (!miSesion) return;
+    const ventas = cargarVentasAbiertas().filter(v => String(v.id) !== String(miSesion));
+    guardarStorageJSON('papel_luna_ventas_abiertas', ventas);
+}
+
+function actualizarEstadoVenta() {
+    const estadoBox = document.getElementById('estado-venta');
+    if (!estadoBox) return;
+    if (!carrito || carrito.length === 0) {
+        estadoBox.classList.add('oculto');
+        estadoBox.innerHTML = '';
+        return;
+    }
+    estadoBox.classList.remove('oculto');
+    estadoBox.innerHTML = `<div class="panel-card">
+        <p>Venta abierta: puedes continuar más tarde o cerrar cuando estés listo.</p>
+        <p><strong>Total pendiente:</strong> ${obtenerTotalCarrito().toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</p>
+    </div>`;
+}
+
 function actualizarMetodoPago() {
     if (!metodoSelect || !efectivoBox) return;
     if (metodoSelect.value === "Efectivo") {
@@ -171,6 +233,8 @@ async function eliminarDelCarrito(index) {
         console.warn("No se encontró id_producto en el ítem, se eliminará localmente:", item);
         carrito.splice(index, 1);
         guardarCarritoLocal(miSesion, carrito);
+        guardarVentaAbiertaLocal();
+        actualizarEstadoVenta();
         render();
         if (typeof actualizarContadorInterfaz === "function") {
             actualizarContadorInterfaz();
@@ -180,6 +244,8 @@ async function eliminarDelCarrito(index) {
 
     carrito.splice(index, 1);
     guardarCarritoLocal(miSesion, carrito);
+    guardarVentaAbiertaLocal();
+    actualizarEstadoVenta();
     render();
     if (typeof actualizarContadorInterfaz === "function") {
         actualizarContadorInterfaz();
@@ -208,6 +274,57 @@ async function eliminarDelCarrito(index) {
         console.error("Error eliminando item del carrito:", error);
     }
 }
+
+async function editarItemCarrito(index) {
+    const item = carrito[index];
+    if (!item) return;
+
+    const nuevoPrecio = parseNumberInput(prompt(`Precio para ${item.nombre}:`, item.precio));
+    if (nuevoPrecio < 0) {
+        mostrarMensaje("Precio inválido", "error");
+        return;
+    }
+
+    const nuevaCantidad = parseNumberInput(prompt(`Cantidad para ${item.nombre}:`, item.cantidad));
+    if (nuevaCantidad <= 0) {
+        mostrarMensaje("Cantidad inválida", "error");
+        return;
+    }
+    if (item.stock > 0 && nuevaCantidad > item.stock) {
+        mostrarMensaje(`No puedes superar el stock de ${item.stock}.`, "error");
+        return;
+    }
+
+    item.precio = nuevoPrecio;
+    item.cantidad = nuevaCantidad;
+    guardarCarritoLocal(miSesion, carrito);
+    guardarVentaAbiertaLocal();
+    actualizarEstadoVenta();
+    render();
+    calcularCambio();
+
+    if (item.id_producto) {
+        try {
+            const respuesta = await fetch(`${API_URL}?resource=productos`, {
+                method: 'POST',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'application/json; charset=UTF-8'
+                },
+                body: JSON.stringify({
+                    id: item.id_producto,
+                    precio: item.precio
+                })
+            });
+            if (!respuesta.ok) {
+                console.warn('No se pudo actualizar el precio del producto en el servicio externo.', respuesta.status);
+            }
+        } catch (error) {
+            console.warn('No se pudo actualizar el precio del producto en el servicio externo.', error);
+        }
+    }
+}
+
 async function vaciar_carrito() {
     if (!miSesion) {
         console.error("No hay sesión en la URL");
@@ -216,6 +333,8 @@ async function vaciar_carrito() {
 
     carrito = [];
     limpiarCarritoLocal(miSesion);
+    borrarVentaAbiertaLocal();
+    actualizarEstadoVenta();
     if (typeof actualizarContadorInterfaz === "function") {
         actualizarContadorInterfaz();
     }
@@ -263,6 +382,8 @@ async function ajustarCantidadCarrito(index, delta) {
 
     item.cantidad = nuevaCantidad;
     guardarCarritoLocal(miSesion, carrito);
+    guardarVentaAbiertaLocal();
+    actualizarEstadoVenta();
     render();
     calcularCambio();
     if (typeof actualizarContadorInterfaz === "function") {
@@ -464,7 +585,10 @@ function render() {
             <div class="subtotal">
                 Subtotal: ${subtotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
             </div>
-            <button onclick="eliminarDelCarrito(${index})" class="btn-borrar">Eliminar</button>
+            <div class="acciones">
+              <button onclick="editarItemCarrito(${index})" class="btn btn-secondary">Editar</button>
+              <button onclick="eliminarDelCarrito(${index})" class="btn-borrar">Eliminar</button>
+            </div>
         `;
         contenedor.appendChild(div);
     });
@@ -472,6 +596,8 @@ function render() {
     if (totalElemento) {
         totalElemento.textContent = sumaTotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
     }
+    guardarVentaAbiertaLocal();
+    actualizarEstadoVenta();
 }
 
 if (metodoSelect) {
@@ -483,6 +609,14 @@ if (recibidoInput) {
 const cerrarBtn = document.getElementById("cerrar");
 if (cerrarBtn) {
     cerrarBtn.addEventListener("click", cerrarVenta);
+}
+const guardarVentaBtn = document.getElementById("guardar-venta");
+if (guardarVentaBtn) {
+    guardarVentaBtn.addEventListener("click", () => {
+        guardarVentaAbiertaLocal();
+        actualizarEstadoVenta();
+        mostrarMensaje("Venta guardada. Puedes continuarla más tarde.", "success");
+    });
 }
 actualizarMetodoPago();
 cargarCarritoDesdeNube();
