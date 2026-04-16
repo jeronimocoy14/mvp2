@@ -6,12 +6,33 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<header class="app-header">
+  <div class="header-brand">
+    <img src="Logo.png" alt="Papel y Luna" class="logo">
+    <div>
+      <h1>Papel y Luna</h1>
+      <p class="subtitle">Consulta y descarga la factura de tu última venta.</p>
+    </div>
+  </div>
+  <nav class="header-nav">
+    <a href="PapelLuna.html" class="btn btn-link">Nueva venta</a>
+    <a href="productos.html" class="btn btn-link">Productos</a>
+    <a href="historial.html" class="btn btn-link">Historial</a>
+  </nav>
+</header>
 
-<h1>Factura</h1>
-<div id="factura"></div>
+<main class="contenedor-form">
+  <section class="page-intro">
+    <h1>Factura</h1>
+    <p class="subtitle">Visualiza el recibo de la venta y continúa con tu siguiente operación.</p>
+  </section>
 
-<a href="PapelLuna.html">Nueva venta</a>
-<a href="historial.html">Historial</a>
+  <div id="factura"></div>
+  <div class="footer-links">
+    <a href="PapelLuna.html" class="btn btn-secondary">Nueva venta</a>
+    <a href="historial.html" class="btn btn-link">Historial</a>
+  </div>
+</main>
 
 <footer>
     <p>© 2026 Papel y Luna. Todos los derechos reservados.</p>

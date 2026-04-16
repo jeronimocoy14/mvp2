@@ -32,9 +32,12 @@ function renderVentas(ventas) {
     }).join("");
 
     const total = Number(venta.total || venta.Total || 0);
-    const recibido = Number(venta.recibido || venta.Recibido || 0);
-    const cambio = Number(venta.cambio || venta.Cambio || 0);
-    const pago = venta.motododepago || venta.motodopago || venta.metodo || "-";
+    const recibido = Number(venta.recibido ?? venta.Recibido ?? 0);
+    const cambio = Number(venta.cambio ?? venta.Cambio ?? 0);
+    const pagoRaw = venta.motododepago || venta.motodopago || venta.metodo || venta.metodoPago || "-";
+    const pago = String(pagoRaw).trim();
+    const pagoLower = pago.toLowerCase();
+    const esEfectivo = pagoLower.includes('efectivo');
     const fecha = venta.fecha || venta.Fecha || "-";
 
     return `
@@ -45,7 +48,7 @@ function renderVentas(ventas) {
         </div>
         <p>Método de pago: <strong>${pago}</strong></p>
         <p>Total: <strong>${total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</strong></p>
-        ${pago === 'Efectivo' ? `<p>Recibido: <strong>${recibido.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</strong></p>
+        ${esEfectivo ? `<p>Recibido: <strong>${recibido.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</strong></p>
         <p>Cambio: <strong>${cambio.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</strong></p>` : ''}
         <details>
           <summary>Ver productos</summary>

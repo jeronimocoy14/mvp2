@@ -180,6 +180,8 @@ async function cerrarVenta() {
         fecha: new Date().toLocaleString('es-CO'),
         clienteid: "",
         motododepago: metodo,
+        metodo: metodo,
+        metodoPago: metodo,
         total: total,
         recibido: recibido,
         cambio: cambio,

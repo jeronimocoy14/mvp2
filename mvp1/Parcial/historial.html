@@ -6,11 +6,33 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<header class="app-header">
+  <div class="header-brand">
+    <img src="Logo.png" alt="Papel y Luna" class="logo">
+    <div>
+      <h1>Papel y Luna</h1>
+      <p class="subtitle">Revisa ventas anteriores y regresa al punto de venta con facilidad.</p>
+    </div>
+  </div>
+  <nav class="header-nav">
+    <a href="PapelLuna.html" class="btn btn-link">Nueva venta</a>
+    <a href="productos.html" class="btn btn-link">Productos</a>
+    <a href="historial.html" class="btn btn-link">Historial</a>
+  </nav>
+</header>
 
-<h1>Historial de ventas</h1>
-<div id="mensaje" class="mensaje"></div>
-<div id="ventas"></div>
-<button id="volver">Volver a la pagina principal</button>
+<main class="contenedor-form">
+  <section class="page-intro">
+    <h1>Historial de ventas</h1>
+    <p class="subtitle">Busca las ventas anteriores y consulta los detalles de manera rápida.</p>
+  </section>
+
+  <div id="mensaje" class="mensaje"></div>
+  <div id="ventas"></div>
+  <div class="footer-links">
+    <button id="volver" class="btn btn-secondary">Volver a la página principal</button>
+  </div>
+</main>
 
 <footer>
     <p>© 2026 Papel y Luna. Todos los derechos reservados.</p>

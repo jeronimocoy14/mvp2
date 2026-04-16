@@ -7,20 +7,27 @@
 </head>
 <body>
 
-<header>
-  <h1>Papel y Luna</h1>
-  <nav>
-    <a href="PapelLuna.html">Nueva venta</a>
-    <a href="productos.html">Productos</a>
-    <a href="historial.html">Ventas</a>
-   <a href="#" onclick="verCarrito(); return false;">
-    Venta en curso 🛒 (<span id="contador-carrito">0</span>)
-  </a>
+<header class="app-header">
+  <div class="header-brand">
+    <img src="Logo.png" alt="Papel y Luna" class="logo">
+    <div>
+      <h1>Papel y Luna</h1>
+      <p class="subtitle">Busca productos, agrega al carrito y procesa ventas rápidamente.</p>
+    </div>
+  </div>
+  <nav class="header-nav">
+    <a href="PapelLuna.html" class="btn btn-link">Nueva venta</a>
+    <a href="productos.html" class="btn btn-link">Productos</a>
+    <a href="historial.html" class="btn btn-link">Historial</a>
+    <a href="#" onclick="verCarrito(); return false;" class="btn btn-secondary">Venta en curso 🛒 (<span id="contador-carrito">0</span>)</a>
   </nav>
 </header>
 
 <main>
-  <h2>Catálogo de productos</h2>
+  <section class="page-intro">
+    <h2>Catálogo de productos</h2>
+    <p class="subtitle">Escribe el nombre o la categoría para filtrar y comienza la venta con un solo clic.</p>
+  </section>
   <input type="text" id="buscador" placeholder="Buscar producto">
   <div id="catalogo" class="grid"></div>
   <div id="mensaje"></div>
