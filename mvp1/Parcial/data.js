@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwxHo6p_qfEVaO1fMhTSVKR46DHmWHw1FCm3xbhmlExPMzaz0jknXxtNkdr1yv9X40/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxeDfafnPFJ3mJ10_SWNxN4AMvT6BUJ63gwIBJWl9tXOAAQ71c_TeGHGoetliB-_Hw/exec";
 let productos = [];
 let carrito = [];
 let ventas = [];

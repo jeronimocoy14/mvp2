@@ -1,6 +1,5 @@
 const mensajeBox = document.getElementById("mensaje");
 const CART_SESSION_KEY = "papel_luna_sesion";
-const CART_STORAGE_PREFIX = "papel_luna_cart_";
 let ID_SESION = localStorage.getItem(CART_SESSION_KEY);
 if (!ID_SESION) {
     ID_SESION = "SES-" + Date.now();
@@ -260,7 +259,7 @@ async function agregar(id) {
     try {
         const respuesta = await fetch(`${API_URL}?resource=Carrito`, {
             method: "POST",
-            mode: "cors",
+            mode: "no-cors",
             headers: {
                 'Content-Type': 'application/json'
             },

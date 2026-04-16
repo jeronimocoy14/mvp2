@@ -20,6 +20,12 @@ const modalCosto = document.getElementById("modal-costo");
 const modalPrecio = document.getElementById("modal-precio");
 const modalCancelar = document.getElementById("modal-cancelar");
 
+function init() {
+    cerrarModal();
+}
+
+window.addEventListener("DOMContentLoaded", init);
+
 
 let productoEditandoId = null;
 let modalConfirmCallback = null;

@@ -793,6 +793,10 @@ button:disabled {
   color: white;
 }
 
+.oculto {
+    display: none !important;
+}
+
 #factura {
   background: white;
   border-radius: var(--radio);
