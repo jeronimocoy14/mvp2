@@ -52,7 +52,6 @@ function mostrarConfirm(texto, onConfirm, onCancel) {
     modalText.textContent = texto;
     modalInput.classList.add("oculto");
     modalInput.value = "";
-
     modalCancel.textContent = "No";
     modalAccept.textContent = "Sí";
 
@@ -92,44 +91,35 @@ function cerrarModal() {
     productoEditandoId = null;
 }
 modalPrecio.addEventListener("click", () => {
-    if (modalOverlay.classList.contains("oculto") || !productoEditandoId) return;
+    if (!productoEditandoId) return;
+    const producto = productos.find(p => String(p.id).trim() === String(productoEditandoId).trim());
 
-    const idLimpio = String(productoEditandoId).trim();
-    const producto = productos.find(p => String(p.id).trim() === idLimpio);
-
-    if (!producto) {
-        mostrarMensaje("Error: Producto no encontrado", "error");
-        cerrarModal();
-        return;
-    }
+    if (!producto) return mostrarMensaje("Error: No encontrado", "error");
+    
     cerrarModal();
     mostrarPrompt(`Nuevo precio para ${producto.nombre}:`, producto.precio, async (nuevoValor) => {
         const num = Number(nuevoValor);
         if (isNaN(num) || num < 0) return mostrarMensaje("Valor no válido", "error");
         
         producto.precio = num;
+        producto.resource = "productos"; // <--- ESTO ES VITAL
         await sincronizarConNube(producto);
     });
 });
 
 modalCosto.addEventListener("click", () => {
-    if (modalOverlay.classList.contains("oculto") || !productoEditandoId) return;
+    if (!productoEditandoId) return;
+    const producto = productos.find(p => String(p.id).trim() === String(productoEditandoId).trim());
 
-    const idLimpio=String(productoEditandoId).trim();
-    const producto=productos.find(p => String(p.id).trim() === idLimpio);
-
-    if (!producto) {
-        mostrarMensaje("Error: Producto no encontrado", "error");
-        cerrarModal();
-        return;
-    }
-
+    if (!producto) return mostrarMensaje("Error: No encontrado", "error");
+    
     cerrarModal();
     mostrarPrompt(`Nuevo costo para ${producto.nombre}:`, producto.costo, async (nuevoValor) => {
         const num = Number(nuevoValor);
-        if (isNaN(num)||num<0) return mostrarMensaje("Valor no válido", "error");
-
-        producto.costo=num;
+        if (isNaN(num) || num < 0) return mostrarMensaje("Valor no válido", "error");
+        
+        producto.costo = num;
+        producto.resource = "productos"; // <--- ESTO ES VITAL
         await sincronizarConNube(producto);
     });
 });
@@ -160,22 +150,35 @@ modalInput.addEventListener("keydown", (event) => {
 });
 
 function cargarOpcionesEntidades() {
-    const categorias = cargarEntidades('categorias');
-    const proveedores = cargarEntidades('proveedores');
+    // Cargar categorías
+    fetch(`${API_URL}?resource=categorias`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && Array.isArray(data.data)) {
+                const categoriasDatalist = document.getElementById('categorias-datalist');
+                if (categoriasDatalist) {
+                    categoriasDatalist.innerHTML = data.data
+                        .map(c => `<option value="${c.nombre}"></option>`)
+                        .join('');
+                }
+            }
+        })
+        .catch(error => console.error('Error cargando categorías:', error));
 
-    const categoriasDatalist = document.getElementById('categorias-datalist');
-    if (categoriasDatalist) {
-        categoriasDatalist.innerHTML = categorias
-            .map(c => `<option value="${c.nombre}"></option>`)
-            .join('');
-    }
-
-    const proveedoresDatalist = document.getElementById('proveedores-datalist');
-    if (proveedoresDatalist) {
-        proveedoresDatalist.innerHTML = proveedores
-            .map(p => `<option value="${p.nombre}"></option>`)
-            .join('');
-    }
+    // Cargar proveedores
+    fetch(`${API_URL}?resource=proveedores`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && Array.isArray(data.data)) {
+                const proveedoresDatalist = document.getElementById('proveedores-datalist');
+                if (proveedoresDatalist) {
+                    proveedoresDatalist.innerHTML = data.data
+                        .map(p => `<option value="${p.nombre}"></option>`)
+                        .join('');
+                }
+            }
+        })
+        .catch(error => console.error('Error cargando proveedores:', error));
 }
 
 async function obtenerProductos() {
@@ -198,23 +201,19 @@ async function sincronizarConNube(producto, esNuevo = false) {
     try {
         mostrarMensaje("Sincronizando...", "info");
 
-        const respuesta = await fetch(`${API_URL}?resource=productos`, {
+        const respuesta = await fetch(API_URL, {
             method: "POST",
-            mode: "cors",
+            mode: "no-cors", 
             headers: {
-                'Content-Type': 'application/json; charset=UTF-8'
+                'Content-Type': 'text/plain; charset=UTF-8' 
             },
             body: JSON.stringify(producto)
         });
-
-        if (!respuesta.ok) {
-            console.warn('Respuesta al sincronizar producto:', respuesta.status);
-        }
-
         mostrarMensaje(esNuevo ? "Producto creado" : "Producto actualizado");
 
         renderizarTabla();
-        setTimeout(obtenerProductos, 2000);
+
+        setTimeout(obtenerProductos, 2500);
 
     } catch (error) {
         console.error("Error en POST:", error);
@@ -244,15 +243,17 @@ async function crear() {
         mostrarMensaje("❌ Ingresa un nombre y precio válido", "error");
         return;
     }
+
+    // Buscamos si ya existe para mantener el ID
     const existente = productos.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
 
     const productoData = {
+        resource: "productos", // Importante para el servidor
         id: existente ? existente.id : Date.now().toString(),
         nombre: nombre,
         precio: precio,
         stock: stock,
         costo: costo,
-        seguimientoInventario: borrarInput ? borrarInput.checked : false,
         categoria: categoria,
         proveedor: proveedor,
         imagen: imagen
@@ -264,9 +265,12 @@ async function crear() {
 
 
 async function restock(id) {
-    // Buscamos el producto por ID
-    const producto = productos.find(p => Number(p.id) === Number(id));
-    if (!producto) return;
+
+    const producto = productos.find(p => String(p.id).trim() === String(id).trim());
+    if (!producto) {
+        mostrarMensaje("Producto no encontrado", "error");
+        return;
+    }
 
     mostrarPrompt(`Agregar stock a: ${producto.nombre} (Actual: ${producto.stock})`, "", async (valor) => {
         const cantidadASumar = Number(valor);
@@ -277,43 +281,49 @@ async function restock(id) {
         }
 
         producto.stock = Number(producto.stock) + cantidadASumar;
+        
+        producto.resource = "productos"; 
 
-        setTimeout(obtenerProductos, 2000);
-
-        producto.id = producto.id.toString();
         await sincronizarConNube(producto);
     });
 }
 async function eliminar(id) {
-
-    const producto = productos.find(p => Number(p.id) === Number(id));
+    // Buscamos el producto con comparación robusta de IDs
+    const producto = productos.find(p => String(p.id).trim() === String(id).trim());
     if (!producto) return;
 
     mostrarConfirm(`¿Deseas eliminar definitivamente "${producto.nombre}"?`, async () => {
         try {
-            mostrarMensaje("Eliminando", "info");
+            mostrarMensaje("Eliminando de la nube...", "info");
 
-            const respuesta = await fetch(`${API_URL}?resource=productos&deleteId=${id}`, {
+            // Creamos el objeto de la solicitud de borrado
+            const datosBorrado = {
+                resource: "productos",
+                action: "delete", // Añadimos una acción específica
+                id: String(id).trim()
+            };
+
+            await fetch(API_URL, {
                 method: "POST",
-                mode: "cors",
+                mode: "no-cors", // Evita el error de política CORS
                 headers: {
-                    'Content-Type': 'application/json; charset=UTF-8'
-                }
+                    'Content-Type': 'text/plain; charset=UTF-8'
+                },
+                body: JSON.stringify(datosBorrado)
             });
 
-            if (!respuesta.ok) {
-                console.warn('Error al eliminar producto:', respuesta.status);
-            }
-
-            productos = productos.filter(p => Number(p.id) !== Number(id));
+            // Actualización visual inmediata
+            productos = productos.filter(p => String(p.id).trim() !== String(id).trim());
             renderizarTabla();
 
             mostrarMensaje("Producto eliminado con éxito");
+            
+            // Refrescar desde la nube tras un breve retraso
             setTimeout(obtenerProductos, 2000);
 
         } catch (error) {
             console.error("Error al eliminar:", error);
-            mostrarMensaje("No se pudo eliminar el producto", "error");
+            mostrarMensaje("Error de conexión al eliminar", "error");
         }
     });
 }

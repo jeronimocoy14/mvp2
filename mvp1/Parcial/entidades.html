@@ -22,6 +22,7 @@
     <a href="entidades.html" class="btn btn-secondary">Entidades</a>
   </nav>
 </header>
+<div id="mensaje" class="mensaje"></div>
 <main class="contenedor-form">
   <section class="page-intro">
     <h1>Gestión de entidades</h1>
@@ -36,49 +37,51 @@
 
   <div id="categorias-panel" class="tab-panel active">
     <div class="form-grid">
-      <input id="categoria-nombre" placeholder="Nombre de la categoría">
-      <input id="categoria-descripcion" placeholder="Descripción breve">
-      <input type="hidden" id="categoria-id">
+      <input id="categorias-nombre" placeholder="Nombre de la categoría">
+      <input id="categorias-descripcion" placeholder="Descripción breve">
+      <input type="hidden" id="categorias-id">
     </div>
     <div class="form-row">
-      <button id="categoria-guardar" class="btn btn-primary">Guardar categoría</button>
-      <button id="categoria-limpiar" class="btn btn-secondary">Limpiar</button>
+      <button id="categorias-guardar" class="btn btn-primary">Guardar categoría</button>
+      <button id="categorias-limpiar" class="btn btn-secondary">Limpiar</button>
     </div>
-    <input id="categoria-buscar" placeholder="Buscar categoría">
+    <input id="categorias-buscar" placeholder="Buscar categoría">
     <div id="categorias-list" class="entity-grid"></div>
   </div>
 
   <div id="proveedores-panel" class="tab-panel">
     <div class="form-grid">
-      <input id="proveedor-nombre" placeholder="Nombre del proveedor">
-      <input id="proveedor-contacto" placeholder="Contacto">
-      <input id="proveedor-telefono" placeholder="Teléfono">
-      <input type="hidden" id="proveedor-id">
+      <input id="proveedores-nombre" placeholder="Nombre del proveedor">
+      <input id="proveedores-contacto" placeholder="Contacto">
+      <input id="proveedores-telefono" placeholder="Teléfono">
+      <input id="proveedores-correo" placeholder="Correo">
+      <input type="hidden" id="proveedores-id">
     </div>
     <div class="form-row">
-      <button id="proveedor-guardar" class="btn btn-primary">Guardar proveedor</button>
-      <button id="proveedor-limpiar" class="btn btn-secondary">Limpiar</button>
+      <button id="proveedores-guardar" class="btn btn-primary">Guardar proveedor</button>
+      <button id="proveedores-limpiar" class="btn btn-secondary">Limpiar</button>
     </div>
-    <input id="proveedor-buscar" placeholder="Buscar proveedor">
+    <input id="proveedores-buscar" placeholder="Buscar proveedor">
     <div id="proveedores-list" class="entity-grid"></div>
   </div>
 
   <div id="clientes-panel" class="tab-panel">
     <div class="form-grid">
-      <input id="cliente-nombre" placeholder="Nombre del cliente">
-      <input id="cliente-documento" placeholder="Documento">
-      <input id="cliente-correo" placeholder="Correo electrónico">
-      <input id="cliente-telefono" placeholder="Teléfono">
-      <input type="hidden" id="cliente-id">
+      <input id="clientes-nombre" placeholder="Nombre del cliente">
+      <input id="clientes-documento" placeholder="Documento">
+      <input id="clientes-correo" placeholder="Correo electrónico">
+      <input id="clientes-telefono" placeholder="Teléfono">
+      <input type="hidden" id="clientes-id">
     </div>
     <div class="form-row">
-      <button id="cliente-guardar" class="btn btn-primary">Guardar cliente</button>
-      <button id="cliente-limpiar" class="btn btn-secondary">Limpiar</button>
+      <button id="clientes-guardar" class="btn btn-primary">Guardar cliente</button>
+      <button id="clientes-limpiar" class="btn btn-secondary">Limpiar</button>
     </div>
-    <input id="cliente-buscar" placeholder="Buscar cliente">
+    <input id="clientes-buscar" placeholder="Buscar cliente">
     <div id="clientes-list" class="entity-grid"></div>
   </div>
 </main>
+
 
 <footer>
   <p>© 2026 Papel y Luna. Todos los derechos reservados.</p>

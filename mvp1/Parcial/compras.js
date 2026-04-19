@@ -43,14 +43,26 @@ function cargarProductosCompra() {
             mostrarMensajeCompra('No se pudo cargar el catálogo de productos.', 'error');
         });
 }
-
 function cargarProveedoresCompra() {
     const datalist = document.getElementById('proveedores-compra');
     if (!datalist) return;
-    const proveedores = cargarEntidades('proveedores');
-    datalist.innerHTML = proveedores
-        .map(p => `<option value="${p.nombre}"></option>`)
-        .join('');
+
+    fetch(`${API_URL}?resource=proveedores`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && Array.isArray(data.data)) {
+                datalist.innerHTML = data.data
+                    .map(p => `<option value="${p.nombre}"></option>`)
+                    .join('');
+            } else {
+                datalist.innerHTML = '';
+                console.error('Error cargando proveedores:', data.message);
+            }
+        })
+        .catch(error => {
+            datalist.innerHTML = '';
+            console.error('Error de red al cargar proveedores:', error);
+        });
 }
 
 function calcularTotalCompra() {
@@ -112,63 +124,66 @@ function eliminarItemCompra(index) {
     compraItems.splice(index, 1);
     renderizarCompra();
 }
-
 async function registrarCompra() {
-    if (!compraItems.length) {
-        mostrarMensajeCompra('Agrega al menos un producto para registrar la compra.', 'error');
+    if (compraItems.length === 0) {
+        mostrarMensajeCompra('Agrega productos a la lista primero.', 'error');
         return;
     }
 
-    const proveedor = proveedorCompraInput.value.trim();
-    if (!proveedor) {
-        mostrarMensajeCompra('Selecciona un proveedor para la compra.', 'error');
+    const proveedorSeleccionado = proveedorCompraInput.value.trim();
+    if (!proveedorSeleccionado) {
+        mostrarMensajeCompra('Debes seleccionar un proveedor.', 'error');
         return;
     }
+
+    const nuevoId = `CP-${Date.now()}`;
+    const totalCalculado = compraItems.reduce((acc, item) => acc + (Number(item.costo) * Number(item.cantidad)), 0);
 
     const compra = {
-        id: `COMPRA-${Date.now()}`,
+        resource: "Compras",
+        id: nuevoId,
         fecha: new Date().toLocaleString('es-CO'),
-        proveedor: proveedor,
-        nota: notaCompraInput.value.trim(),
-        items: JSON.stringify(compraItems),
-        total: compraItems.reduce((acc, item) => acc + Number(item.costo) * Number(item.cantidad), 0)
+        proveedor: proveedorSeleccionado,
+        total: totalCalculado,
+        nota: notaCompraInput.value.trim() || "Sin nota",
+        items: JSON.stringify(compraItems)
     };
 
     try {
-        const respuesta = await fetch(`${API_URL}?resource=compras`, {
+        mostrarMensajeCompra(`Enviando registro ${nuevoId}...`, 'info');
+        
+        // CAMBIO CRÍTICO AQUÍ: Usamos mode: 'no-cors' y 'text/plain'
+        await fetch(API_URL, {
             method: 'POST',
-            mode: 'cors',
-            headers: {
-                'Content-Type': 'application/json; charset=UTF-8'
-            },
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify(compra)
         });
 
-        if (!respuesta.ok) {
-            mostrarMensajeCompra('No se pudo enviar la compra al servicio externo.', 'error');
-            console.warn('Error registrar compra:', respuesta.status);
-            return;
-        }
-
-        mostrarMensajeCompra('Compra registrada correctamente.', 'success');
+        // Como usamos no-cors, no podemos leer la respuesta JSON, 
+        // así que asumimos éxito si el fetch no lanza error.
+        mostrarMensajeCompra(`Compra ${nuevoId} registrada con éxito.`, 'success');
+        
         compraItems = [];
         renderizarCompra();
-        proveedorCompraInput.value = '';
-        notaCompraInput.value = '';
+        limpiarFormularioCompra();
     } catch (error) {
-        console.error('Error al enviar compra:', error);
-        mostrarMensajeCompra('Error de conexión al enviar la compra.', 'error');
+        console.error('Error:', error);
+        mostrarMensajeCompra('Error de conexión con el servidor.', 'error');
     }
 }
 
-function limpiarCompra() {
-    compraItems = [];
+function limpiarFormularioCompra() {
+    proveedorCompraInput.value = '';
+    notaCompraInput.value = '';
     productoCompraInput.value = '';
     cantidadCompraInput.value = '';
     costoCompraInput.value = '';
-    proveedorCompraInput.value = '';
-    notaCompraInput.value = '';
-    renderizarCompra();
+}
+function limpiarCompra() {
+    compraItems = []; // Vacía la lista de productos agregados
+    limpiarFormularioCompra(); // Limpia los inputs
+    renderizarCompra(); // Refresca la tabla
 }
 
 function inicializarCompras() {

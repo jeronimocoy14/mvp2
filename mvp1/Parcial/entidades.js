@@ -1,96 +1,107 @@
+// ============================================================
+// CONFIGURACIÓN Y CACHE
+// ============================================================
+const cache = { categorias: [], proveedores: [], clientes: [] };
+
 const secciones = {
   categorias: {
-    key: 'categorias',
-    name: 'Categoría',
-    storage: 'categorias',
+    key: "categorias",
+    name: "Categorías",
     fields: [
-      { id: 'categoria-nombre', label: 'Nombre', required: true },
-      { id: 'categoria-descripcion', label: 'Descripción' }
+      { id: "categorias-nombre", label: "Nombre", required: true },
+      { id: "categorias-descripcion", label: "Descripción" }
     ],
-    listContainer: document.getElementById('categorias-list'),
-    buscar: document.getElementById('categoria-buscar')
+    get listContainer() { return document.getElementById("categorias-list"); },
+    get buscar() { return document.getElementById("categorias-buscar"); }
   },
   proveedores: {
-    key: 'proveedores',
-    name: 'Proveedor',
-    storage: 'proveedores',
+    key: "proveedores",
+    name: "Proveedores",
     fields: [
-      { id: 'proveedor-nombre', label: 'Nombre', required: true },
-      { id: 'proveedor-contacto', label: 'Contacto' },
-      { id: 'proveedor-telefono', label: 'Teléfono' }
+      { id: "proveedores-nombre", label: "Nombre", required: true },
+      { id: "proveedores-contacto", label: "Contacto" },
+      { id: "proveedores-correo", label: "Correo" },
+      { id: "proveedores-telefono", label: "Teléfono" }
     ],
-    listContainer: document.getElementById('proveedores-list'),
-    buscar: document.getElementById('proveedor-buscar')
+    get listContainer() { return document.getElementById("proveedores-list"); },
+    get buscar() { return document.getElementById("proveedores-buscar"); }
   },
   clientes: {
-    key: 'clientes',
-    name: 'Cliente',
-    storage: 'clientes',
+    key: "clientes",
+    name: "Clientes",
     fields: [
-      { id: 'cliente-nombre', label: 'Nombre', required: true },
-      { id: 'cliente-documento', label: 'Documento' },
-      { id: 'cliente-correo', label: 'Correo' },
-      { id: 'cliente-telefono', label: 'Teléfono' }
+      { id: "clientes-nombre", label: "Nombre", required: true },
+      { id: "clientes-documento", label: "Documento" },
+      { id: "clientes-correo", label: "Correo" },
+      { id: "clientes-telefono", label: "Teléfono" }
     ],
-    listContainer: document.getElementById('clientes-list'),
-    buscar: document.getElementById('cliente-buscar')
+    get listContainer() { return document.getElementById("clientes-list"); },
+    get buscar() { return document.getElementById("clientes-buscar"); }
   }
 };
 
-function inicializarTabs() {
-  const botones = document.querySelectorAll('.tab-button');
-  botones.forEach(boton => {
-    boton.addEventListener('click', () => {
-      botones.forEach(btn => btn.classList.remove('active'));
-      boton.classList.add('active');
-      const panelId = boton.dataset.panel;
-      document.querySelectorAll('.tab-panel').forEach(panel => {
-        panel.classList.toggle('active', panel.id === panelId);
-      });
-    });
+// ============================================================
+// COMUNICACIÓN CON LA NUBE (API)
+// ============================================================
+
+async function fetchEntidades(resource) {
+  try {
+    const res = await fetch(`${API_URL}?resource=${resource}`);
+    const json = await res.json();
+    if (json.success) {
+      cache[resource] = json.data;
+      return json.data;
+    }
+    return cache[resource] || [];
+  } catch (err) {
+    console.error("Error de red (GET):", err);
+    return cache[resource] || [];
+  }
+}
+
+async function postEntidad(resource, data) {
+  await fetch(API_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ resource, ...data })
   });
+  return { success: true };
 }
 
-function obtenerDatosSeccion(seccion) {
-  const config = secciones[seccion];
-  if (!config) return [];
-  return cargarEntidades(config.storage);
-}
-
-function guardarDatosSeccion(seccion, lista) {
-  guardarEntidades(secciones[seccion].storage, lista);
-}
-
-function limpiarFormulario(seccion) {
-  const config = secciones[seccion];
-  if (!config) return;
-  config.fields.forEach(field => {
-    const elemento = document.getElementById(field.id);
-    if (elemento) elemento.value = '';
+async function deleteEntidad(resource, id) {
+  await fetch(API_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ resource, action: "delete", id: id })
   });
-  const idField = document.getElementById(`${seccion}-id`);
-  if (idField) idField.value = '';
+  return { success: true };
 }
 
-function renderizarSeccion(seccion, filtro = '') {
+// ============================================================
+// LÓGICA CRUD Y RENDERIZADO
+// ============================================================
+
+function renderizarSeccion(seccion, filtro = "") {
   const config = secciones[seccion];
   if (!config || !config.listContainer) return;
 
-  const datos = obtenerDatosSeccion(seccion).filter(item => {
-    const texto = Object.values(item).join(' ').toLowerCase();
+  const datos = (cache[seccion] || []).filter(item => {
+    const texto = Object.values(item).join(" ").toLowerCase();
     return texto.includes(filtro.toLowerCase());
   });
 
   if (!datos.length) {
-    config.listContainer.innerHTML = `<p>No hay ${config.name.toLowerCase()}s registrados.</p>`;
+    config.listContainer.innerHTML = `<p class="empty-msg">No hay registros de ${config.name.toLowerCase()}.</p>`;
     return;
   }
 
   config.listContainer.innerHTML = datos.map(item => {
     const detalles = Object.entries(item)
-      .filter(([key]) => key !== 'id' && key !== 'nombre')
-      .map(([key, value]) => `<p><strong>${key.replace(/([A-Z])/g, ' $1')}:</strong> ${value || '-'}</p>`)
-      .join('');
+      .filter(([key]) => key !== "id" && key !== "nombre")
+      .map(([key, value]) => `<p><strong>${key.charAt(0).toUpperCase() + key.slice(1)}:</strong> ${value || "-"}</p>`)
+      .join("");
 
     return `
       <div class="entity-card">
@@ -101,106 +112,166 @@ function renderizarSeccion(seccion, filtro = '') {
           <button class="btn btn-danger" onclick="eliminarEntidad('${seccion}','${item.id}')">Eliminar</button>
         </div>
       </div>`;
-  }).join('');
+  }).join("");
 }
+
+async function guardarEntidad(seccion) {
+  const config = secciones[seccion];
+  const entidad = recolectarEntidad(seccion);
+  if (!entidad) return;
+
+  const esActualizacion = cache[seccion].some(item => String(item.id) === String(entidad.id));
+  
+  mostrarMensaje(esActualizacion ? "Actualizando información..." : "Creando nuevo registro...", "info");
+  setBusy(seccion, true);
+
+  try {
+    const result = await postEntidad(seccion, entidad);
+
+    if (result.success) {
+      const idx = cache[seccion].findIndex(item => String(item.id) === String(entidad.id));
+      if (idx >= 0) cache[seccion][idx] = entidad;
+      else cache[seccion].push(entidad);
+
+      const mensajesExito = {
+        categorias: esActualizacion ? "¡Categoría actualizada con éxito!" : "¡Genial! Nueva categoría agregada.",
+        proveedores: esActualizacion ? "Datos del proveedor actualizados." : "¡Bienvenido! Nuevo proveedor registrado.",
+        clientes: esActualizacion ? "Información del cliente guardada." : "¡Excelente! Cliente añadido a la base de datos."
+      };
+
+      mostrarMensaje(mensajesExito[seccion] || "Guardado correctamente", "success");
+      limpiarFormulario(seccion);
+      renderizarSeccion(seccion, config.buscar?.value || "");
+      
+      // Sincronización de fondo
+      setTimeout(() => fetchEntidades(seccion), 2000);
+    }
+  } catch (err) {
+    mostrarMensaje("Error de conexión al guardar.", "error");
+  } finally {
+    setBusy(seccion, false);
+  }
+}
+
+async function eliminarEntidad(seccion, id) {
+  const config = secciones[seccion];
+  const registro = cache[seccion].find(item => String(item.id) === String(id));
+  const nombre = registro ? registro.nombre : "este registro";
+
+  if (!confirm(`¿Estás seguro de que deseas eliminar a "${nombre}"? Esta acción no se puede deshacer.`)) return;
+
+  mostrarMensaje(`Eliminando "${nombre}"...`, "info");
+  setBusy(seccion, true);
+
+  try {
+    const result = await deleteEntidad(seccion, id);
+    if (result.success) {
+      cache[seccion] = cache[seccion].filter(item => String(item.id) !== String(id));
+      renderizarSeccion(seccion, config.buscar?.value || "");
+      mostrarMensaje(`"${nombre}" ha sido removido/a correctamente.`, "success");
+    }
+  } catch (err) {
+    mostrarMensaje("No pudimos eliminar el registro.", "error");
+  } finally {
+    setBusy(seccion, false);
+  }
+}
+
+// ============================================================
+// HELPERS DE FORMULARIO Y UI
+// ============================================================
 
 function recolectarEntidad(seccion) {
   const config = secciones[seccion];
-  if (!config) return null;
-  const entidad = { id: document.getElementById(`${seccion}-id`).value || Date.now().toString() };
+  const entidad = {
+    id: document.getElementById(`${seccion}-id`)?.value || Date.now().toString()
+  };
+
   config.fields.forEach(field => {
     const elemento = document.getElementById(field.id);
-    entidad[field.id.replace(`${seccion}-`, '')] = elemento ? elemento.value.trim() : '';
+    const key = field.id.replace(`${seccion}-`, "");
+    entidad[key] = elemento ? elemento.value.trim() : "";
   });
 
   if (!entidad.nombre) {
-    mostrarMensaje(`Ingresa el nombre de la ${config.name.toLowerCase()}.`, 'error');
+    mostrarMensaje(`Por favor, ingresa el nombre.`, "warning");
     return null;
   }
   return entidad;
 }
 
-function guardarEntidad(seccion) {
-  const config = secciones[seccion];
-  if (!config) return;
-  const entidad = recolectarEntidad(seccion);
-  if (!entidad) return;
-
-  const lista = obtenerDatosSeccion(seccion);
-  const index = lista.findIndex(item => String(item.id) === String(entidad.id));
-  if (index >= 0) {
-    lista[index] = entidad;
-    mostrarMensaje(`${config.name} actualizada correctamente.`, 'success');
-  } else {
-    lista.push(entidad);
-    mostrarMensaje(`${config.name} creada correctamente.`, 'success');
-  }
-
-  guardarDatosSeccion(seccion, lista);
-  limpiarFormulario(seccion);
-  renderizarSeccion(seccion);
-}
-
 function editarEntidad(seccion, id) {
-  const config = secciones[seccion];
-  if (!config) return;
-  const lista = obtenerDatosSeccion(seccion);
-  const item = lista.find(entry => String(entry.id) === String(id));
+  const item = cache[seccion].find(entry => String(entry.id) === String(id));
   if (!item) return;
-  config.fields.forEach(field => {
-    const elemento = document.getElementById(field.id);
-    if (!elemento) return;
-    elemento.value = item[field.id.replace(`${seccion}-`, '')] || '';
+
+  secciones[seccion].fields.forEach(field => {
+    const el = document.getElementById(field.id);
+    const key = field.id.replace(`${seccion}-`, "");
+    if (el) el.value = item[key] || "";
   });
+
   const idField = document.getElementById(`${seccion}-id`);
   if (idField) idField.value = item.id;
   document.getElementById(`${seccion}-nombre`)?.focus();
 }
 
-function eliminarEntidad(seccion, id) {
-  const config = secciones[seccion];
-  if (!config) return;
-  if (!confirm(`¿Eliminar esta ${config.name.toLowerCase()}?`)) return;
-
-  const lista = obtenerDatosSeccion(seccion).filter(item => String(item.id) !== String(id));
-  guardarDatosSeccion(seccion, lista);
-  renderizarSeccion(seccion);
-  mostrarMensaje(`${config.name} eliminada.`, 'success');
+function limpiarFormulario(seccion) {
+  secciones[seccion].fields.forEach(field => {
+    const el = document.getElementById(field.id);
+    if (el) el.value = "";
+  });
+  const idField = document.getElementById(`${seccion}-id`);
+  if (idField) idField.value = "";
 }
 
-function mostrarMensaje(texto, tipo = 'success') {
-  const contenedor = document.getElementById('mensaje');
-  if (!contenedor) {
-    alert(texto);
-    return;
-  }
-  contenedor.textContent = texto;
+function mostrarMensaje(texto, tipo = "success") {
+  const contenedor = document.getElementById("mensaje");
+  if (!contenedor) return;
+
+
+  
+
+  contenedor.textContent = ` ${texto}`;
   contenedor.className = `mensaje ${tipo} mostrar`;
-  setTimeout(() => contenedor.classList.remove('mostrar'), 3000);
+  
+  clearTimeout(mostrarMensaje._t);
+  mostrarMensaje._t = setTimeout(() => contenedor.classList.remove("mostrar"), 3500);
 }
 
-function iniciarEntidades() {
-  Object.keys(secciones).forEach(seccion => {
-    const config = secciones[seccion];
-    renderizarSeccion(seccion);
-    if (config.buscar) {
-      config.buscar.addEventListener('input', () => {
-        renderizarSeccion(seccion, config.buscar.value);
-      });
-    }
+function setBusy(seccion, busy) {
+  const btn = document.getElementById(`${seccion}-guardar`);
+  if (btn) {
+    btn.disabled = busy;
+    btn.textContent = busy ? "Procesando..." : `Guardar ${secciones[seccion].name.slice(0,-1)}`;
+  }
+}
+
+async function iniciarEntidades() {
+  // Tabs
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.addEventListener('click', () => {
+      document.querySelectorAll('.tab-button, .tab-panel').forEach(el => el.classList.remove('active'));
+      button.classList.add('active');
+      document.getElementById(button.dataset.panel).classList.add('active');
+    });
   });
 
-  document.getElementById('categoria-guardar')?.addEventListener('click', () => guardarEntidad('categorias'));
-  document.getElementById('proveedor-guardar')?.addEventListener('click', () => guardarEntidad('proveedores'));
-  document.getElementById('cliente-guardar')?.addEventListener('click', () => guardarEntidad('clientes'));
+  // Carga inicial
+  await Promise.all(Object.keys(secciones).map(async seccion => {
+    await fetchEntidades(seccion);
+    renderizarSeccion(seccion);
+    if (secciones[seccion].buscar) {
+      secciones[seccion].buscar.addEventListener("input", (e) => renderizarSeccion(seccion, e.target.value));
+    }
+  }));
 
-  document.getElementById('categoria-limpiar')?.addEventListener('click', () => limpiarFormulario('categorias'));
-  document.getElementById('proveedor-limpiar')?.addEventListener('click', () => limpiarFormulario('proveedores'));
-  document.getElementById('cliente-limpiar')?.addEventListener('click', () => limpiarFormulario('clientes'));
-
-  inicializarTabs();
+  // Event Listeners de botones
+  Object.keys(secciones).forEach(sec => {
+    document.getElementById(`${sec}-guardar`)?.addEventListener("click", () => guardarEntidad(sec));
+    document.getElementById(`${sec}-limpiar`)?.addEventListener("click", () => limpiarFormulario(sec));
+  });
 }
 
 window.editarEntidad = editarEntidad;
 window.eliminarEntidad = eliminarEntidad;
-window.addEventListener('DOMContentLoaded', iniciarEntidades);
+window.addEventListener("DOMContentLoaded", iniciarEntidades);
