@@ -438,39 +438,49 @@ async function decrementarStockProductos(items) {
 }
 
 async function cerrarVenta() {
-    if (!miSesion) {
-        console.error("No hay sesión en la URL");
-        return;
-    }
+    if (carrito.length === 0) return mostrarMensaje("El carrito está vacío", "error");
 
-    const productoSinStock = carrito.find(item => item.stock > 0 && Number(item.cantidad) > Number(item.stock));
-    if (productoSinStock) {
-        mostrarMensaje(`No hay suficiente stock de ${productoSinStock.nombre}.`, "error");
-        return;
-    }
-    if (!carrito || carrito.length === 0) {
-        mostrarMensaje("El carrito está vacío.", "error");
-        return;
-    }
+    const ventaData = {
+        action: 'cerrarVenta', // Tu Script de Google debe reconocer esta acción
+        items: carrito,
+        total: calcularTotal(),
+        fecha: new Date().toISOString(),
+        metodoPago: document.getElementById("metodo").value
+    };
 
-    const metodo = metodoSelect ? metodoSelect.value : "";
-    if (!metodo) {
-        mostrarMensaje("Selecciona un método de pago.", "error");
-        return;
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Importante para Google Apps Script
+            body: JSON.stringify(ventaData)
+        });
+
+        descontarStockLocal(carrito);
+        
+        mostrarMensaje("Venta procesada y stock actualizado", "success");
+        
+    
+        setTimeout(() => {
+            window.location.href = `factura.html?id=${ID_SESION}`;
+        }, 1500);
+
+    } catch (error) {
+        console.error("Error al cerrar venta:", error);
+        mostrarMensaje("Error al conectar con el servidor", "error");
     }
+}
 
-    const total = obtenerTotalCarrito();
-    let recibido = null;
-    let cambio = 0;
+function descontarStockLocal(itemsVendidos) {
 
-    if (metodo === "Efectivo") {
-        recibido = parseNumberInput(recibidoInput?.value || '');
-        if (recibido <= 0 || recibido < total) {
-            mostrarMensaje("Ingresa un valor recibido válido.", "error");
-            return;
+    itemsVendidos.forEach(itemVenta => {
+        const producto = productos.find(p => String(p.id) === String(itemVenta.id));
+        if (producto) {
+            producto.stock -= itemVenta.cantidad;
         }
-        cambio = recibido - total;
-    }
+    });
+
+    guardarStorageJSON('papel_luna_productos', productos);
+}
 
     const ventaItems = carrito.map(item => ({
         id_sesion: item.id_sesion,
@@ -549,7 +559,6 @@ async function cerrarVenta() {
             mostrarMensaje("Error al cerrar la venta.", "error");
         }
     }
-}
 
 function render() {
     const contenedor = document.getElementById("carrito-lista");
