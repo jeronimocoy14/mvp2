@@ -229,54 +229,49 @@ async function eliminarDelCarrito(index) {
     }
 
     const idProducto = item.id_producto ?? item.id ?? item.idProducto ?? item.producto;
-    
-    // 1. Eliminación visual e inmediata (UX rápida)
+    if (!idProducto) {
+        console.warn("No se encontró id_producto en el ítem, se eliminará localmente:", item);
+        carrito.splice(index, 1);
+        guardarCarritoLocal(miSesion, carrito);
+        guardarVentaAbiertaLocal();
+        actualizarEstadoVenta();
+        render();
+        if (typeof actualizarContadorInterfaz === "function") {
+            actualizarContadorInterfaz();
+        }
+        return;
+    }
+
     carrito.splice(index, 1);
     guardarCarritoLocal(miSesion, carrito);
     guardarVentaAbiertaLocal();
     actualizarEstadoVenta();
     render();
-    
     if (typeof actualizarContadorInterfaz === "function") {
         actualizarContadorInterfaz();
     }
 
-    if (!idProducto) return;
-
-    // 2. Sincronización con el servidor (Google Sheets)
     try {
         const datos = {
             id_sesion: miSesion,
             id_producto: idProducto,
             accion: "delete"
         };
-
         const respuesta = await fetch(`${API_URL}?resource=Carrito`, {
             method: "POST",
             mode: "cors",
             headers: {
-                // CAMBIO CLAVE: text/plain para evitar el error de CORS
-                'Content-Type': 'text/plain; charset=UTF-8'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(datos)
         });
-
-        // Leemos la respuesta como texto y luego la convertimos a JSON
-        const textoRespuesta = await respuesta.text();
-        let resultado;
-        try {
-            resultado = JSON.parse(textoRespuesta);
-        } catch (e) {
-            resultado = { success: false, error: "Respuesta no válida" };
-        }
-
+        const resultado = await respuesta.json();
         console.log("Eliminar carrito response:", resultado);
-        
         if (!resultado.success) {
-            console.error("Servidor no pudo eliminar:", resultado.error);
+            console.error("No se pudo eliminar el ítem del carrito en el servidor:", resultado);
         }
     } catch (error) {
-        console.error("Error de red eliminando item:", error);
+        console.error("Error eliminando item del carrito:", error);
     }
 }
 
@@ -336,7 +331,6 @@ async function vaciar_carrito() {
         return;
     }
 
-    // Limpieza local (esto está perfecto)
     carrito = [];
     limpiarCarritoLocal(miSesion);
     borrarVentaAbiertaLocal();
@@ -352,25 +346,21 @@ async function vaciar_carrito() {
             accion: "vaciar"
         };
 
-        // CAMBIO CLAVE AQUÍ
         const respuesta = await fetch(`${API_URL}?resource=Carrito`, {
             method: "POST",
-            mode: "cors", 
+            mode: "cors",
             headers: {
-                'Content-Type': 'text/plain; charset=UTF-8' // <--- ESTO ELIMINA EL ERR_FAILED
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(datos)
         });
-
-        // Como usamos text/plain, GAS responderá, pero a veces hay que leerlo como texto primero
-        const texto = await respuesta.text();
-        const resultado = JSON.parse(texto);
+        const resultado = await respuesta.json();
 
         if (!resultado.success) {
-            console.error("Error en servidor:", resultado);
+            console.error("No se pudo vaciar el carrito en el servidor:", resultado);
         }
     } catch (error) {
-        console.error("Error de conexión al vaciar:", error);
+        console.error("Error vaciando carrito:", error);
     }
 }
 
@@ -426,23 +416,23 @@ async function decrementarStockProductos(items) {
     for (const item of items) {
         const stockActual = Number(item.stock || 0);
         const cantidad = Number(item.cantidad || 0);
-        
         if (!item.id_producto || stockActual <= 0 || cantidad <= 0) continue;
 
         const nuevoStock = Math.max(0, stockActual - cantidad);
-        
         try {
-        
             await fetch(`${API_URL}?resource=productos`, {
                 method: "POST",
-                mode: "no-cors", 
+                mode: "cors",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
                     id: item.id_producto,
                     stock: nuevoStock
                 })
             });
         } catch (error) {
-            console.error("Error en la petición:", error);
+            console.error("Error actualizando stock del producto:", item, error);
         }
     }
 }
@@ -492,67 +482,72 @@ async function cerrarVenta() {
     }));
 
     const venta = {
-    id: `VENTA-${Date.now()}`,
-    fecha: new Date().toLocaleString('es-CO'),
-    clienteid: "",
-    motododepago: metodo,
-    total: total,
-    recibido: recibido,
-    items: ventaItems 
-};
+        id: `VENTA-${Date.now()}`,
+        fecha: new Date().toLocaleString('es-CO'),
+        clienteid: "",
+        motododepago: metodo,
+        metodo: metodo,
+        metodoPago: metodo,
+        total: total,
+        recibido: recibido,
+        cambio: cambio,
+        items: JSON.stringify(ventaItems)
+    };
 
     try {
-        mostrarMensaje("Procesando venta...", "info");
-
         const respuesta = await fetch(`${API_URL}?resource=ventas`, {
             method: "POST",
             mode: "cors",
             headers: {
-                // CAMBIO VITAL: text/plain para evitar el bloqueo del navegador
-                'Content-Type': 'text/plain; charset=UTF-8' 
+                'Content-Type': 'application/json; charset=UTF-8'
             },
             body: JSON.stringify(venta)
         });
 
-        // Leemos la respuesta de Google
         const textoRespuesta = await respuesta.text();
-        console.log("Respuesta del servidor:", textoRespuesta);
-        
-        let resultado;
-        try {
-            resultado = JSON.parse(textoRespuesta);
-        } catch (e) {
-            resultado = { success: false };
+        console.log("Cerrar venta request:", venta);
+        console.log("Cerrar venta response raw:", textoRespuesta);
+
+        if (!respuesta.ok) {
+            const serverError = textoRespuesta || `Status ${respuesta.status}`;
+            mostrarMensaje(`No se pudo guardar la venta: ${serverError}`, "error");
+            console.error("Error guardando venta:", respuesta.status, textoRespuesta);
+            return;
         }
 
-        if (respuesta.ok && resultado.success) {
-            // ÉXITO: El stock ya se actualizó en el servidor (Hoja de Google)
-            
-            carrito = []; // Limpiamos variable local
-            limpiarCarritoLocal(miSesion); // Limpiamos localStorage del carrito
-            borrarVentaAbiertaLocal(); // Limpiamos la venta pendiente
-            
+        await decrementarStockProductos(carrito);
+        carrito = [];
+        limpiarCarritoLocal(miSesion);
+        if (typeof actualizarContadorInterfaz === "function") {
+            actualizarContadorInterfaz();
+        }
+        render();
+        localStorage.removeItem("papel_luna_sesion");
+        mostrarMensaje("Venta registrada correctamente.", "success");
+        await vaciar_carrito();
+    } catch (error) {
+        console.warn("Error cerrando venta con CORS, intento no-cors:", error);
+        try {
+            await fetch(`${API_URL}?resource=ventas`, {
+                method: "POST",
+                mode: "no-cors",
+                body: JSON.stringify(venta)
+            });
+            await decrementarStockProductos(carrito);
+            carrito = [];
+            limpiarCarritoLocal(miSesion);
             if (typeof actualizarContadorInterfaz === "function") {
                 actualizarContadorInterfaz();
             }
-            
-            render(); // Actualizamos la vista
-            localStorage.removeItem("papel_luna_sesion"); // Opcional: limpiar la sesión
-            
+            render();
+            localStorage.removeItem("papel_luna_sesion");
             mostrarMensaje("Venta registrada correctamente.", "success");
-            
-            // Si tu API borra el carrito al cerrar venta, esto ya no es necesario, 
-            // pero lo dejamos por seguridad si tu lógica de Google así lo requiere:
-            // await vaciar_carrito(); 
-
-        } else {
-            const errorMsg = resultado.error || "Error desconocido en el servidor";
-            mostrarMensaje(`No se pudo guardar: ${errorMsg}`, "error");
+            await vaciar_carrito();
+            return;
+        } catch (backupError) {
+            console.error("Error cerrando venta en modo no-cors:", backupError);
+            mostrarMensaje("Error al cerrar la venta.", "error");
         }
-
-    } catch (error) {
-        console.error("Error definitivo en cerrarVenta:", error);
-        mostrarMensaje("Error de conexión. Verifica tu internet.", "error");
     }
 }
 
